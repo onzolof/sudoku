@@ -1,8 +1,1 @@
-# Data
-
-## Downloading New Sudoku Challenges
-- visit https://opensudoku.moire.org/
-- In the section *Generated Puzzles* set the number of puzzles to the maximum of 100
-- Select a difficulty level
-- Click 'Generate'
-- Import downloaded files into SQlite Database
+use the repo sudoku-generator and there the shell script *generate_puzzles.sh* to create new puzzles
