@@ -12,17 +12,29 @@ interface Puzzle {
   added_at: number;
 }
 
-export default function Sudoku() {
+type SudokuProps = {
+  puzzleId: string;
+};
+
+export default function Sudoku({ puzzleId }: SudokuProps) {
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [loading, setLoading] = useState(true);
   const puzzlesDb = usePuzzlesDb();
 
+  const seed = puzzle?.seed ?? '';
+  const seedGrid = seed.match(/.{1,9}/g) || [];
+
   useEffect(() => {
     const loadPuzzle = async () => {
       try {
-        const result = await puzzlesDb.getAllAsync("SELECT * FROM puzzle LIMIT 1;");
+        const result = await puzzlesDb.getAllAsync(
+            'SELECT * FROM puzzle WHERE id = ? LIMIT 1;',
+            [puzzleId]
+        );
         if (result && result.length > 0) {
           setPuzzle(result[0] as Puzzle);
+        } else {
+          setPuzzle(null);
         }
       } catch (error) {
         console.error('Failed to load puzzle:', error);
@@ -31,65 +43,54 @@ export default function Sudoku() {
       }
     };
 
+    setLoading(true);
     loadPuzzle();
-  }, [puzzlesDb]);
+  }, [puzzlesDb, puzzleId]);
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-lg">Loading puzzle...</Text>
-      </View>
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-base text-foreground opacity-70">Loading puzzle...</Text>
+        </View>
     );
   }
 
   if (!puzzle) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-lg">No puzzle found</Text>
-      </View>
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-base text-foreground">Puzzle not found</Text>
+          <Text className="text-xs text-muted">ID: {puzzleId}</Text>
+        </View>
     );
   }
 
-  // Convert seed string to 9x9 grid
-  const seedGrid = puzzle.seed.match(/.{1,9}/g) || [];
-  
   return (
-    <View className="flex-1 items-center justify-center p-4">
-      <Text className="text-sm text-gray-600 mb-4">
-        Difficulty: {puzzle.difficulty} | Clues: {puzzle.number_of_clues}
-      </Text>
-      
-      {/* Sudoku Grid */}
-      <View className="border-2 border-gray-800">
-        {seedGrid.map((row, rowIndex) => (
-          <View key={rowIndex} className="flex-row">
-            {row.split('').map((cell, colIndex) => {
-              const isRightBorder = (colIndex + 1) % 3 === 0;
-              const isBottomBorder = (rowIndex + 1) % 3 === 0;
-              
-              return (
-                <View
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`
-                    w-10 h-10 items-center justify-center border border-gray-400
-                    ${isRightBorder ? 'border-r-2 border-r-gray-800' : ''}
-                    ${isBottomBorder ? 'border-b-2 border-b-gray-800' : ''}
-                    ${rowIndex === 0 ? 'border-t-2 border-t-gray-800' : ''}
-                    ${colIndex === 0 ? 'border-l-2 border-l-gray-800' : ''}
-                  `}
-                >
-                  <Text className={`
-                    text-lg font-semibold
-                    ${cell === '0' ? 'text-gray-300' : 'text-black'}
-                  `}>
-                    {cell === '0' ? '' : cell}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        ))}
+      <View className="w-full items-center justify-center py-4">
+        <View className="border-2 border-border">
+          {seedGrid.map((row, rowIndex) => (
+            <View key={`row-${rowIndex}`} className="flex-row">
+              {[...row].map((cell, colIndex) => {
+                const thickLeft = colIndex === 0 ? ' border-l-2' : '';
+                const thickTop = rowIndex === 0 ? ' border-t-2' : '';
+                const thickRight = (colIndex === 2 || colIndex === 5 || colIndex === 8) ? ' border-r-2' : '';
+                const thickBottom = (rowIndex === 2 || rowIndex === 5 || rowIndex === 8) ? ' border-b-2' : '';
+                return (
+                  <View
+                    key={`cell-${rowIndex}-${colIndex}`}
+                    className={
+                      'w-9 h-9 items-center justify-center border border-border' +
+                      thickLeft + thickTop + thickRight + thickBottom
+                    }
+                  >
+                    {cell !== '0' ? (
+                      <Text className="text-base text-foreground">{cell}</Text>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+        </View>
       </View>
-    </View>
-  );
+  )
 }

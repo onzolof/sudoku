@@ -1,25 +1,22 @@
 import './global.css'
-import {StyleSheet, View} from 'react-native';
+import {SafeAreaView} from 'react-native';
 import {PuzzlesDbProvider, UserDbProvider} from "./src/db/dbProviders";
 import Header from "./src/components/Header";
-import Sudoku from "./src/components/Sudoku";
+import Content from "./src/components/Content";
+import {StrictMode} from "react";
 
 export default function App() {
     return (
-        <View style={styles.container}>
+        <StrictMode>
             <PuzzlesDbProvider>
                 <UserDbProvider>
-                    <Header/>
-                    <Sudoku/>
+                    <SafeAreaView>
+                        <Header/>
+                        <Content/>
+                    </SafeAreaView>
                 </UserDbProvider>
             </PuzzlesDbProvider>
-        </View>
+        </StrictMode>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-});
