@@ -55,7 +55,6 @@ export default function Sudoku() {
   
   return (
     <View className="flex-1 items-center justify-center p-4">
-      <Text className="text-2xl font-bold mb-4">Sudoku Puzzle</Text>
       <Text className="text-sm text-gray-600 mb-4">
         Difficulty: {puzzle.difficulty} | Clues: {puzzle.number_of_clues}
       </Text>
