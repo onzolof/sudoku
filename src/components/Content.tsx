@@ -8,6 +8,9 @@ export default function Content() {
   const [loading, setLoading] = useState(true);
   const puzzlesDb = usePuzzlesDb();
 
+  // todo: implement the following behaviour
+    // load localstorage key '@current_puzzle'. if it is empty, load a random puzzle id, that is not yet in the progress table of the user.db
+
   useEffect(() => {
     const choosePuzzle = async () => {
       try {
