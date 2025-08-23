@@ -39,30 +39,36 @@ export default function Sudoku({puzzleId}: SudokuProps) {
     useEffect(() => {
         const loadOrCreateProgress = async () => {
             try {
-                const previousId = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-                const targetId = previousId || puzzleId;
+                // Check if progress exists first
+                let loadedSudoku = await userDb.getFirstAsync(
+                    'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
+                    [puzzleId]
+                ) as Progress;
 
-                // Ensure a progress row exists (no-op if it already does)
-                const archetype = await puzzlesDb.getFirstAsync(
-                    'SELECT seed FROM puzzle WHERE id = ? LIMIT 1;',
-                    [targetId]
-                ) as { seed: string } | null;
-
-                if (archetype) {
-                    await userDb.runAsync(
-                        'INSERT OR IGNORE INTO progress (puzzleId, puzzle, moves, notes, solved) VALUES (?, ?, NULL, NULL, 0);',
-                        [targetId, archetype.seed]
-                    );
+                if (!loadedSudoku) {
+                    // Create new progress record if it doesn't exist
+                    const loadedArchetype = await puzzlesDb.getFirstAsync(
+                        'SELECT * FROM puzzle WHERE id = ? LIMIT 1;',
+                        [puzzleId]
+                    ) as Puzzle;
+                    
+                    if (loadedArchetype) {
+                        await userDb.runAsync(
+                            'INSERT INTO progress (puzzleId, puzzle, moves, notes, solved) VALUES (?, ?, NULL, NULL, 0);',
+                            [puzzleId, loadedArchetype.seed]
+                        );
+                        
+                        // Reload the newly created progress record
+                        loadedSudoku = await userDb.getFirstAsync(
+                            'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
+                            [puzzleId]
+                        ) as Progress;
+                    }
                 }
 
-                const loaded = await userDb.getFirstAsync(
-                    'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
-                    [targetId]
-                ) as Progress | undefined;
-
-                if (loaded && loaded.puzzleId){
-                    setSudoku(loaded);
-                    await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, loaded.puzzleId);
+                if (loadedSudoku) {
+                    setSudoku(loadedSudoku);
+                    await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, loadedSudoku.puzzleId);
                 }
             } catch (error) {
                 console.error('Failed to load or create Sudoku:', error);
@@ -73,7 +79,7 @@ export default function Sudoku({puzzleId}: SudokuProps) {
 
         setLoading(true);
         loadOrCreateProgress();
-    }, [puzzlesDb, userDb, puzzleId]);
+    }, [puzzleId, puzzlesDb, userDb]);
 
     if (loading) {
         return (
