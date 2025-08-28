@@ -4,14 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {usePuzzlesDb, useUserDb} from '../db/dbProviders';
 import Sudoku from './Sudoku';
 import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
+import {PuzzleProgress} from "../types";
 
-interface PuzzleProgress {
-    puzzleId: string;
-    puzzle: string;
-    moves: string | null;
-    notes: string | null;
-    solved: number;
-}
 
 // todo: clean up and review the code carefully, simplify if possible
 

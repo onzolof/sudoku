@@ -3,25 +3,7 @@ import {View, Text} from 'react-native';
 import {usePuzzlesDb, useUserDb} from '../db/dbProviders';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
-
-interface Puzzle {
-    // todo: ideally use camel case here as well
-    id: string;
-    difficulty: string;
-    number_of_clues: number;
-    seed: string;
-    solution: string;
-    version: number;
-    added_at: number;
-}
-
-interface Progress {
-    puzzleId: string;
-    puzzle: string;          // the original starting point of the sudoku
-    moves: string | null;    // stored as JSON TEXT
-    notes: string | null;    // stored as JSON TEXT
-    solved: number;          // 0/1 in DB
-}
+import {ProgressSchema, PuzzleSchema} from "../types";
 
 type SudokuProps = {
     puzzleId: string;
@@ -31,7 +13,7 @@ export default function Sudoku({puzzleId}: SudokuProps) {
     const [loading, setLoading] = useState(true);
     const puzzlesDb = usePuzzlesDb();
     const userDb = useUserDb();
-    const [sudoku, setSudoku] = useState<Progress | null>(null);
+    const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
 
     const gridString = (sudoku?.puzzle ?? '');
     const seedGrid = gridString.match(/.{1,9}/g) || [];
@@ -43,14 +25,14 @@ export default function Sudoku({puzzleId}: SudokuProps) {
                 let loadedSudoku = await userDb.getFirstAsync(
                     'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
                     [puzzleId]
-                ) as Progress;
+                ) as ProgressSchema;
 
                 if (!loadedSudoku) {
                     // Create new progress record if it doesn't exist
                     const loadedArchetype = await puzzlesDb.getFirstAsync(
                         'SELECT * FROM puzzle WHERE id = ? LIMIT 1;',
                         [puzzleId]
-                    ) as Puzzle;
+                    ) as PuzzleSchema;
                     
                     if (loadedArchetype) {
                         await userDb.runAsync(
@@ -62,7 +44,7 @@ export default function Sudoku({puzzleId}: SudokuProps) {
                         loadedSudoku = await userDb.getFirstAsync(
                             'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
                             [puzzleId]
-                        ) as Progress;
+                        ) as ProgressSchema;
                     }
                 }
 
