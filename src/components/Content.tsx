@@ -4,9 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {usePuzzlesDb, useUserDb} from '../db/dbProviders';
 import Sudoku from './Sudoku';
 
-// todo: extract constant in dedicated file
-const CURRENT_SUDOKU_ID_KEY = '@current_sudoku_id';
-
 interface PuzzleProgress {
     puzzleId: string;
     puzzle: string;
@@ -160,7 +157,7 @@ export default function Content() {
                 console.log('Loaded progress records:', records.length);
 
                 // 2. Try to restore from @current_sudoku_id
-                const savedPuzzleId = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_KEY);
+                const savedPuzzleId = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
                 console.log('Saved puzzle ID:', savedPuzzleId);
 
                 if (savedPuzzleId) {
@@ -179,7 +176,7 @@ export default function Content() {
                         return; // Exit early since we restored successfully
                     } else {
                         // Saved ID doesn't exist in progress, clear it
-                        await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_KEY);
+                        await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
                         console.log('Cleared invalid saved puzzle ID');
                     }
                 }
@@ -240,7 +237,7 @@ export default function Content() {
 
             setCurrentProgressIndex(previousIndex);
             setCurrentPuzzleId(previousRecord.puzzleId);
-            await AsyncStorage.setItem(CURRENT_SUDOKU_ID_KEY, previousRecord.puzzleId);
+            await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, previousRecord.puzzleId);
         }
     }, [currentProgressIndex, progressRecords]);
 
@@ -253,7 +250,7 @@ export default function Content() {
 
             setCurrentProgressIndex(nextIndex);
             setCurrentPuzzleId(nextRecord.puzzleId);
-            await AsyncStorage.setItem(CURRENT_SUDOKU_ID_KEY, nextRecord.puzzleId);
+            await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, nextRecord.puzzleId);
         } else if (nextPuzzleId) {
             // Add new puzzle
             try {
@@ -265,7 +262,7 @@ export default function Content() {
 
                 setCurrentProgressIndex(newIndex);
                 setCurrentPuzzleId(nextPuzzleId);
-                await AsyncStorage.setItem(CURRENT_SUDOKU_ID_KEY, nextPuzzleId);
+                await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, nextPuzzleId);
 
                 // Clear next puzzle and pre-fetch new one
                 setNextPuzzleId(null);

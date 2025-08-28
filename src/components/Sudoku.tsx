@@ -26,7 +26,6 @@ type SudokuProps = {
     puzzleId: string;
 };
 
-const CURRENT_SUDOKU_ID_STORAGE_KEY = '@current_sudoku_id';
 export default function Sudoku({puzzleId}: SudokuProps) {
     const [loading, setLoading] = useState(true);
     const puzzlesDb = usePuzzlesDb();
