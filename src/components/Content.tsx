@@ -1,11 +1,10 @@
-import React, {useEffect, useMemo, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {usePuzzlesDb, useUserDb} from '../db/dbProviders';
 import Sudoku from './Sudoku';
 import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
 import {PuzzleProgress} from "../types";
-
 
 // todo: clean up and review the code carefully, simplify if possible
 
@@ -17,24 +16,10 @@ export default function Content() {
     const [nextPuzzleId, setNextPuzzleId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [progressRecords, setProgressRecords] = useState<PuzzleProgress[]>([]);
+    // todo: can i get rid of this local state?
     const [currentProgressIndex, setCurrentProgressIndex] = useState<number>(0);
 
-    // Add debugging
-    console.log('Content render state:', {
-        loading,
-        currentPuzzleId,
-        progressRecordsLength: progressRecords.length,
-        currentProgressIndex,
-        nextPuzzleId
-    });
-
-    // Memoized current puzzle for performance
-    const currentPuzzle = useMemo(() =>
-            progressRecords[currentProgressIndex] || null,
-        [progressRecords, currentProgressIndex]
-    );
-
-    // Load progress records ordered by creation (we'll use rowid for ordering)
+    // todo: how can i declare this function to return type PuzzleProgress[]
     const loadProgressRecords = useCallback(async () => {
         try {
             const records = await userDb.getAllAsync(
@@ -52,7 +37,8 @@ export default function Content() {
     const preFetchNextPuzzle = useCallback(async (excludeIds: string[]) => {
         try {
             // Get a batch of random puzzles and filter in JS to avoid long NOT IN queries
-            const batchSize = 20;
+            const batchSize = 100;
+            // todo: extract the following logic in a new function which takes batch size as input and call this function twice then
             const randomPuzzles = await puzzlesDb.getAllAsync(
                 'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
                 [batchSize]
@@ -83,6 +69,7 @@ export default function Content() {
 
     // Pick random puzzle ID (avoiding long NOT IN queries)
     const pickRandomPuzzleId = useCallback(async (excludeIds: string[]): Promise<string | null> => {
+        // todo: what is the difference between this and the previous function?
         try {
             const batchSize = 20;
             const randomPuzzles = await puzzlesDb.getAllAsync(
@@ -140,74 +127,53 @@ export default function Content() {
     }, [puzzlesDb, userDb, loadProgressRecords]);
 
 
-    // Initialize app state
     useEffect(() => {
         const initializeApp = async () => {
             setLoading(true);
             try {
-                console.log('Starting app initialization...');
-
-                // 1. Load progress records first
-                const records = await loadProgressRecords();
-                console.log('Loaded progress records:', records.length);
-
-                // 2. Try to restore from @current_sudoku_id
-                const savedPuzzleId = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-                console.log('Saved puzzle ID:', savedPuzzleId);
-
-                if (savedPuzzleId) {
-                    // Check if this puzzle exists in progress and find its index
-                    const existingIndex = records.findIndex(r => r.puzzleId === savedPuzzleId);
-                    console.log('Existing index:', existingIndex);
-
+                const userProgress = await loadProgressRecords();
+                const currentSudoku = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
+                if (currentSudoku) {
+                    const existingIndex = userProgress.findIndex(r => r.puzzleId === currentSudoku);
                     if (existingIndex !== -1) {
-                        setCurrentPuzzleId(savedPuzzleId);
+                        setCurrentPuzzleId(currentSudoku);
                         setCurrentProgressIndex(existingIndex);
-
-                        // Pre-fetch next puzzle for the restored puzzle
-                        const excludeIds = [savedPuzzleId, ...records.map(r => r.puzzleId)];
+                        const excludeIds = [currentSudoku, ...userProgress.map(r => r.puzzleId)];
                         await preFetchNextPuzzle(excludeIds);
-                        console.log('Restored from saved puzzle');
-                        return; // Exit early since we restored successfully
+                        console.debug('Restored from saved puzzle');
+                        return;
                     } else {
-                        // Saved ID doesn't exist in progress, clear it
                         await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-                        console.log('Cleared invalid saved puzzle ID');
+                        console.debug('Cleared invalid saved puzzle ID');
                     }
                 }
 
-                // 3. If no current puzzle, pick a random one not in progress
-                console.log('Picking random puzzle...');
-                const excludeIds = records.map(r => r.puzzleId);
-                const randomPuzzle = await pickRandomPuzzleId(excludeIds);
-                console.log('Random puzzle selected:', randomPuzzle);
+                // todo: do i have to do this two times?
+                const excludeIds = userProgress.map(r => r.puzzleId);
+                const newSudoku = await pickRandomPuzzleId(excludeIds);
+                console.debug('Random puzzle selected:', newSudoku);
 
-                if (randomPuzzle) {
-                    setCurrentPuzzleId(randomPuzzle);
-                    // Create progress record for this puzzle
-                    console.log('Creating progress record...');
-                    await createProgressRecord(randomPuzzle);
+                if (newSudoku) {
+                    setCurrentPuzzleId(newSudoku);
+                    await createProgressRecord(newSudoku);
 
                     // Refresh records and set index
+                    // todo: can this code be made more elegantly? avoid re-calling the load and find?
                     const newRecords = await loadProgressRecords();
-                    console.log('New records after creation:', newRecords.length);
-
-                    const newIndex = newRecords.findIndex(r => r.puzzleId === randomPuzzle);
+                    const newIndex = newRecords.findIndex(r => r.puzzleId === newSudoku);
+                    // todo: is currentProgressIndex even needed as a local state?
                     setCurrentProgressIndex(newIndex);
-                    console.log('Set current index to:', newIndex);
 
-                    // Pre-fetch next puzzle
-                    const updatedExcludeIds = [randomPuzzle, ...newRecords.map(r => r.puzzleId)];
+                    const updatedExcludeIds = [newSudoku, ...newRecords.map(r => r.puzzleId)];
                     await preFetchNextPuzzle(updatedExcludeIds);
                 } else {
-                    console.log('No random puzzle available');
+                    // todo; show alert that no more puzzles are available
+                    console.error('No random puzzle available');
                 }
-
             } catch (error) {
                 console.error('Failed to initialize app:', error);
             } finally {
                 setLoading(false);
-                console.log('App initialization complete');
             }
         };
 
@@ -229,7 +195,6 @@ export default function Content() {
         if (currentProgressIndex > 0) {
             const previousIndex = currentProgressIndex - 1;
             const previousRecord = progressRecords[previousIndex];
-
             setCurrentProgressIndex(previousIndex);
             setCurrentPuzzleId(previousRecord.puzzleId);
             await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, previousRecord.puzzleId);
@@ -239,19 +204,16 @@ export default function Content() {
     // Navigate to next puzzle or add new one
     const goToNextPuzzle = useCallback(async () => {
         if (currentProgressIndex < progressRecords.length - 1) {
-            // Go to existing next puzzle
             const nextIndex = currentProgressIndex + 1;
             const nextRecord = progressRecords[nextIndex];
-
             setCurrentProgressIndex(nextIndex);
             setCurrentPuzzleId(nextRecord.puzzleId);
             await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, nextRecord.puzzleId);
         } else if (nextPuzzleId) {
-            // Add new puzzle
+            // Load new puzzle and add it to user db
             try {
                 await createProgressRecord(nextPuzzleId);
 
-                // Refresh records and move to the new puzzle
                 const updatedRecords = await loadProgressRecords();
                 const newIndex = updatedRecords.length - 1;
 
@@ -259,10 +221,9 @@ export default function Content() {
                 setCurrentPuzzleId(nextPuzzleId);
                 await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, nextPuzzleId);
 
-                // Clear next puzzle and pre-fetch new one
                 setNextPuzzleId(null);
 
-                // Pre-fetch next puzzle
+                // todo: this code duplication should be prevented as well
                 const excludeIds = [nextPuzzleId, ...updatedRecords.map(r => r.puzzleId)];
                 await preFetchNextPuzzle(excludeIds);
             } catch (error) {
@@ -274,32 +235,10 @@ export default function Content() {
     if (loading) {
         return (
             <View className="flex-1 items-center justify-center">
-                <Text className="text-base text-foreground opacity-70">Loading puzzle...</Text>
+                <Text className="text-base text-foreground opacity-70">Loading sudoku...</Text>
             </View>
         );
     }
-
-    // Add more detailed debugging
-    console.log('Render decision:', {
-        currentPuzzleId,
-        progressRecordsLength: progressRecords.length,
-        shouldShowNoPuzzle: !currentPuzzleId || progressRecords.length === 0
-    });
-
-    if (!currentPuzzleId || progressRecords.length === 0) {
-        return (
-            <View className="flex-1 items-center justify-center">
-                <Text className="text-base text-foreground">No puzzle found</Text>
-                <Text className="text-xs text-muted mt-2">
-                    currentPuzzleId: {currentPuzzleId || 'null'}
-                </Text>
-                <Text className="text-xs text-muted">
-                    progressRecords: {progressRecords.length}
-                </Text>
-            </View>
-        );
-    }
-
 
     return (
         <View>

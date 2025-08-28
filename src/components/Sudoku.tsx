@@ -21,6 +21,7 @@ export default function Sudoku({puzzleId}: SudokuProps) {
     useEffect(() => {
         const loadOrCreateProgress = async () => {
             try {
+                // todo: ideally this component does not need access to puzzlesDb, user db should already be prepared by the content component above, here it should be expected, that for the given puzzle id an record can be found in the user db
                 // Check if progress exists first
                 let loadedSudoku = await userDb.getFirstAsync(
                     'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
