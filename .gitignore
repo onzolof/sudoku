@@ -38,3 +38,7 @@ yarn-error.*
 
 # IDE
 .idea/
+
+# sqlite
+*.db-shm
+*.db-wal
