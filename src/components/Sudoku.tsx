@@ -1,17 +1,17 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text} from 'react-native';
-import {useUserDb} from '../db/dbProviders';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
 import {ProgressSchema} from "../types";
+import {useServices} from "../hooks";
 
 type SudokuProps = {
     puzzleId: string | null;
 };
 
 export default function Sudoku({puzzleId}: SudokuProps) {
+    const {progressService} = useServices();
     const [loading, setLoading] = useState(true);
-    const userDb = useUserDb();
     const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
 
     const gridString = (sudoku?.puzzle ?? '');
@@ -19,13 +19,10 @@ export default function Sudoku({puzzleId}: SudokuProps) {
 
     useEffect(() => {
         const loadProgress = async () => {
+            if (!puzzleId) return;
+            
             try {
-                // Load progress record from user database
-                const loadedSudoku = await userDb.getFirstAsync(
-                    'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
-                    [puzzleId]
-                ) as ProgressSchema;
-
+                const loadedSudoku = await progressService.getProgressRecord(puzzleId);
                 if (loadedSudoku) {
                     setSudoku(loadedSudoku);
                     await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, loadedSudoku.puzzleId);
@@ -42,7 +39,7 @@ export default function Sudoku({puzzleId}: SudokuProps) {
 
         setLoading(true);
         loadProgress();
-    }, [puzzleId, userDb]);
+    }, [puzzleId, progressService]);
 
     if (loading) {
         return (

@@ -1,63 +1,45 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback, useMemo} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {usePuzzlesDb, useUserDb} from '../db/dbProviders';
+import {useServices} from '../hooks';
 import Sudoku from './Sudoku';
 import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
 import {PuzzleProgress} from "../types";
 
 export default function Content() {
-    const puzzlesDb = usePuzzlesDb();
-    const userDb = useUserDb();
+    const { puzzleService, progressService, gameService } = useServices();
 
     const [currentPuzzleId, setCurrentPuzzleId] = useState<string | null>(null);
     const [nextPuzzleId, setNextPuzzleId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [progressRecords, setProgressRecords] = useState<PuzzleProgress[]>([]);
 
-    const currentIndex = currentPuzzleId
-        ? progressRecords.findIndex(r => r.puzzleId === currentPuzzleId)
-        : -1;
-    const canGoPrevious = currentIndex > 0;
-    const canGoNext = currentIndex < progressRecords.length - 1 || nextPuzzleId;
+    const currentIndex = useMemo(() => 
+        currentPuzzleId
+            ? progressRecords.findIndex(r => r.puzzleId === currentPuzzleId)
+            : -1,
+        [currentPuzzleId, progressRecords]
+    );
+    
+    const canGoPrevious = useMemo(() => currentIndex > 0, [currentIndex]);
+    const canGoNext = useMemo(() => 
+        currentIndex < progressRecords.length - 1 || nextPuzzleId, 
+        [currentIndex, progressRecords.length, nextPuzzleId]
+    );
 
     const loadProgressRecords = useCallback(async () => {
-        try {
-            const records = await userDb.getAllAsync(
-                'SELECT puzzleId, puzzle, moves, notes, solved FROM progress ORDER BY rowid ASC;'
-            ) as PuzzleProgress[];
-            setProgressRecords(records);
-            return records;
-        } catch (error) {
-            console.error('Failed to load progress records:', error);
-            return [];
-        }
-    }, [userDb]);
+        const records = await progressService.loadProgressRecords();
+        setProgressRecords(records);
+        return records;
+    }, [progressService]);
 
     // Core function to find a random puzzle ID that's not in the exclude list
     const findRandomPuzzleId = useCallback(async (
         excludeIds: string[], 
         batchSizes: number[]
     ): Promise<string | null> => {
-        try {
-            for (const batchSize of batchSizes) {
-                const randomPuzzles = await puzzlesDb.getAllAsync(
-                    'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
-                    [batchSize]
-                ) as { id: string }[];
-
-                const availablePuzzles = randomPuzzles.filter(p => !excludeIds.includes(p.id));
-
-                if (availablePuzzles.length > 0) {
-                    return availablePuzzles[0].id;
-                }
-            }
-            return null;
-        } catch (error) {
-            console.error('Failed to find random puzzle ID:', error);
-            return null;
-        }
-    }, [puzzlesDb]);
+        return await puzzleService.findRandomPuzzleId(excludeIds, batchSizes);
+    }, [puzzleService]);
 
     // Pre-fetch next puzzle for instant swiping
     const preFetchNextPuzzle = useCallback(async (excludeIds: string[]) => {
@@ -84,24 +66,12 @@ export default function Content() {
     // Create progress record for a new puzzle
     const createProgressRecord = useCallback(async (puzzleId: string) => {
         try {
-            const puzzle = await puzzlesDb.getFirstAsync(
-                'SELECT seed FROM puzzle WHERE id = ? LIMIT 1;',
-                [puzzleId]
-            ) as { seed: string } | null;
-
-            if (puzzle) {
-                await userDb.runAsync(
-                    'INSERT INTO progress (puzzleId, puzzle, moves, notes, solved) VALUES (?, ?, NULL, NULL, 0);',
-                    [puzzleId, puzzle.seed]
-                );
-
-                // Refresh progress records
-                await loadProgressRecords();
-            }
+            await gameService.createNewGame(puzzleId);
+            await loadProgressRecords();
         } catch (error) {
             console.error('Failed to create progress record:', error);
         }
-    }, [puzzlesDb, userDb, loadProgressRecords]);
+    }, [gameService, loadProgressRecords]);
 
     // Navigate to previous puzzle
     const goToPreviousPuzzle = useCallback(async () => {
@@ -138,6 +108,7 @@ export default function Content() {
         }
     }, [currentIndex, progressRecords, nextPuzzleId, createProgressRecord, loadProgressRecords, preFetchNextPuzzle]);
 
+    // todo: muss diese funktion so umfangreich sein?
     useEffect(() => {
         const initializeApp = async () => {
             setLoading(true);
