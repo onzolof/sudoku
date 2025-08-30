@@ -34,73 +34,52 @@ export default function Content() {
         }
     }, [userDb]);
 
+    // Core function to find a random puzzle ID that's not in the exclude list
+    const findRandomPuzzleId = useCallback(async (
+        excludeIds: string[], 
+        batchSizes: number[]
+    ): Promise<string | null> => {
+        try {
+            for (const batchSize of batchSizes) {
+                const randomPuzzles = await puzzlesDb.getAllAsync(
+                    'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
+                    [batchSize]
+                ) as { id: string }[];
+
+                const availablePuzzles = randomPuzzles.filter(p => !excludeIds.includes(p.id));
+
+                if (availablePuzzles.length > 0) {
+                    return availablePuzzles[0].id;
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error('Failed to find random puzzle ID:', error);
+            return null;
+        }
+    }, [puzzlesDb]);
+
     // Pre-fetch next puzzle for instant swiping
     const preFetchNextPuzzle = useCallback(async (excludeIds: string[]) => {
         try {
-            const batchSize = 100;
-            // todo: extract the following logic in a new function which takes batch size as input and call this function twice then
-            const randomPuzzles = await puzzlesDb.getAllAsync(
-                'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
-                [batchSize]
-            ) as { id: string }[];
-
-            const availablePuzzles = randomPuzzles.filter(p => !excludeIds.includes(p.id));
-
-            if (availablePuzzles.length > 0) {
-                setNextPuzzleId(availablePuzzles[0].id);
-                return;
-            }
-
-            // If batch was too small, try a larger one
-            const largerBatch = await puzzlesDb.getAllAsync(
-                'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
-                [batchSize * 3]
-            ) as { id: string }[];
-
-            const available = largerBatch.filter(p => !excludeIds.includes(p.id));
-            if (available.length > 0) {
-                setNextPuzzleId(available[0].id);
+            const puzzleId = await findRandomPuzzleId(excludeIds, [100, 300]);
+            if (puzzleId) {
+                setNextPuzzleId(puzzleId);
             }
         } catch (error) {
             console.error('Failed to pre-fetch next puzzle:', error);
         }
-    }, [puzzlesDb]);
+    }, [findRandomPuzzleId]);
 
     // Pick random puzzle ID (avoiding long NOT IN queries)
     const pickRandomPuzzleId = useCallback(async (excludeIds: string[]): Promise<string | null> => {
-        // todo: what is the difference between this and the previous function?
         try {
-            const batchSize = 20;
-            const randomPuzzles = await puzzlesDb.getAllAsync(
-                'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
-                [batchSize]
-            ) as { id: string }[];
-
-            const availablePuzzles = randomPuzzles.filter(p => !excludeIds.includes(p.id));
-
-            if (availablePuzzles.length > 0) {
-                return availablePuzzles[0].id;
-            }
-
-            // If batch was too small, try larger batches
-            for (let size = batchSize * 2; size <= batchSize * 5; size *= 2) {
-                const largerBatch = await puzzlesDb.getAllAsync(
-                    'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
-                    [size]
-                ) as { id: string }[];
-
-                const available = largerBatch.filter(p => !excludeIds.includes(p.id));
-                if (available.length > 0) {
-                    return available[0].id;
-                }
-            }
-
-            return null;
+            return await findRandomPuzzleId(excludeIds, [20, 40, 80, 160]);
         } catch (error) {
             console.error('Failed to pick random puzzle:', error);
             return null;
         }
-    }, [puzzlesDb]);
+    }, [findRandomPuzzleId]);
 
     // Create progress record for a new puzzle
     const createProgressRecord = useCallback(async (puzzleId: string) => {
@@ -219,16 +198,14 @@ export default function Content() {
         <View>
             <TouchableOpacity
                 onPress={goToPreviousPuzzle}
-                disabled={!canGoPrevious}
             >
-                <Text>←</Text>
+                {canGoPrevious && <Text>←</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity
                 onPress={goToNextPuzzle}
-                disabled={!canGoNext}
             >
-                <Text>→</Text>
+                {canGoNext && <Text>→</Text>}
             </TouchableOpacity>
             
             <View>
