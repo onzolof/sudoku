@@ -1,5 +1,5 @@
-import React, {useEffect, useState, useCallback, useMemo} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
+import React, {useEffect, useState, useCallback, useMemo, useRef} from 'react';
+import {View, Text, FlatList} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
 import Sudoku from './Sudoku';
@@ -7,23 +7,23 @@ import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
 import {PuzzleProgress} from "../types";
 
 export default function Content() {
-    const { puzzleService, progressService, gameService } = useServices();
+    const {puzzleService, progressService, gameService} = useServices();
 
     const [currentPuzzleId, setCurrentPuzzleId] = useState<string | null>(null);
     const [nextPuzzleId, setNextPuzzleId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [progressRecords, setProgressRecords] = useState<PuzzleProgress[]>([]);
 
-    const currentIndex = useMemo(() => 
-        currentPuzzleId
-            ? progressRecords.findIndex(r => r.puzzleId === currentPuzzleId)
-            : -1,
+    const currentIndex = useMemo(() =>
+            currentPuzzleId
+                ? progressRecords.findIndex(r => r.puzzleId === currentPuzzleId)
+                : -1,
         [currentPuzzleId, progressRecords]
     );
-    
+
     const canGoPrevious = useMemo(() => currentIndex > 0, [currentIndex]);
-    const canGoNext = useMemo(() => 
-        currentIndex < progressRecords.length - 1 || nextPuzzleId, 
+    const canGoNext = useMemo(() =>
+            currentIndex < progressRecords.length - 1 || nextPuzzleId,
         [currentIndex, progressRecords.length, nextPuzzleId]
     );
 
@@ -34,7 +34,7 @@ export default function Content() {
     }, [progressService]);
 
     const findRandomPuzzleId = useCallback(async (
-        excludeIds: string[], 
+        excludeIds: string[],
         batchSizes: number[]
     ): Promise<string | null> => {
         return await puzzleService.findRandomPuzzleId(excludeIds, batchSizes);
@@ -71,7 +71,7 @@ export default function Content() {
 
     const goToPreviousPuzzle = useCallback(async () => {
         if (!canGoPrevious) return;
-        
+
         const previousRecord = progressRecords[currentIndex - 1];
         setCurrentPuzzleId(previousRecord.puzzleId);
         await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, previousRecord.puzzleId);
@@ -87,7 +87,7 @@ export default function Content() {
             // Load new puzzle and add it to user db
             try {
                 await createProgressRecord(nextPuzzleId);
-                
+
                 setCurrentPuzzleId(nextPuzzleId);
                 await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, nextPuzzleId);
                 setNextPuzzleId(null);
@@ -105,9 +105,9 @@ export default function Content() {
     // Extract initialization logic into smaller, focused functions
     const restoreFromSavedPuzzle = useCallback(async (userProgress: PuzzleProgress[]) => {
         const currentSudoku = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-        
+
         if (!currentSudoku) return false;
-        
+
         const existingIndex = userProgress.findIndex(r => r.puzzleId === currentSudoku);
         if (existingIndex === -1) {
             await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
@@ -126,15 +126,15 @@ export default function Content() {
         const excludeIds = userProgress.map(r => r.puzzleId);
         const newSudoku = await pickRandomPuzzleId(excludeIds);
         console.debug('Random puzzle selected:', newSudoku);
-        
+
         if (!newSudoku) {
             console.error('No random puzzle available');
             return false;
         }
-        
+
         setCurrentPuzzleId(newSudoku);
         await createProgressRecord(newSudoku);
-        
+
         // Pre-fetch next puzzle
         const updatedRecords = await loadProgressRecords();
         const updatedExcludeIds = [newSudoku, ...updatedRecords.map(r => r.puzzleId)];
@@ -169,20 +169,23 @@ export default function Content() {
         );
     }
 
+    // noinspection TypeScriptUnresolvedReference,TypeScriptValidateTypes
     return (
-        <View>
-            <TouchableOpacity onPress={goToPreviousPuzzle} >
-                {canGoPrevious && <Text>←</Text>}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={goToNextPuzzle} >
-                {canGoNext && <Text>→</Text>}
-            </TouchableOpacity>
-            
-            <View>
-                <Sudoku puzzleId={currentPuzzleId}/>
-            </View>
-        </View>
-    );
+        <FlatList<PuzzleProgress>
+            data={progressRecords}
+            keyExtractor={(item) => item.puzzleId}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={true} // todo: just for testing
+            renderItem={({item}: ListRenderItem<PuzzleProgress>) => (
+                <View className="w-screen flex-1 items-center justify-center">
+                    <Sudoku puzzleId={item.puzzleId}/>
+                </View>
+            )}
+            initialNumToRender={2}
+            windowSize={3}
+            removeClippedSubviews
+        />
+    )
 }
 
