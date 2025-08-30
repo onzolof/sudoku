@@ -23,16 +23,34 @@ export function PuzzlesDbProvider({children}: { children: ReactNode }) {
 function UserDbInner({children}: { children: ReactNode }) {
     const db = useSQLiteContext();
 
-    // Initialize and heal schema at runtime (no asset copy)
     useEffect(() => {
         (async () => {
-            await db.runAsync(
-                'CREATE TABLE IF NOT EXISTS progress (puzzleId TEXT, puzzle TEXT NOT NULL, moves TEXT, notes TEXT, solved INTEGER NOT NULL DEFAULT 0 CHECK (solved IN (0,1)));'
-            );
-            const cols = await db.getAllAsync('PRAGMA table_info(progress);') as Array<{ name: string }>;
-            if (!cols.some(c => c.name === 'puzzleId')) {
-                await db.runAsync('ALTER TABLE progress ADD COLUMN puzzleId TEXT;');
-                await db.runAsync('UPDATE progress SET puzzleId = puzzle WHERE puzzleId IS NULL;');
+            try {
+                // Check if table exists
+                const tableExists = await db.getAllAsync("SELECT name FROM sqlite_master WHERE type='table' AND name='progress';");
+                
+                if (tableExists.length === 0) {
+                    // Create new table with proper schema
+                    await db.runAsync(`
+                        CREATE TABLE progress (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            puzzleId TEXT NOT NULL,
+                            puzzle TEXT NOT NULL,
+                            moves TEXT,
+                            notes TEXT,
+                            solved INTEGER NOT NULL DEFAULT 0 CHECK (solved IN (0,1))
+                        );
+                    `);
+                    
+                    // Create indexes for efficient pagination
+                    await db.runAsync('CREATE INDEX idx_progress_id ON progress(id);');
+                    await db.runAsync('CREATE INDEX idx_progress_puzzleId ON progress(puzzleId);');
+                    await db.runAsync('CREATE INDEX idx_progress_solved ON progress(solved);');
+                    
+                    console.log('Created new progress table with id column and indexes');
+                }
+            } catch (error) {
+                console.error('Error creating database schema:', error);
             }
         })();
     }, [db]);
