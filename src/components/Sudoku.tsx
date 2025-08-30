@@ -1,7 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
 
@@ -20,12 +18,11 @@ export default function Sudoku({puzzleId}: SudokuProps) {
     useEffect(() => {
         const loadProgress = async () => {
             if (!puzzleId) return;
-            
+
             try {
                 const loadedSudoku = await progressService.getProgressRecord(puzzleId);
                 if (loadedSudoku) {
                     setSudoku(loadedSudoku);
-                    await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, loadedSudoku.puzzleId);
                 } else {
                     // This should not happen - Content component ensures progress records exist
                     console.error(`Progress record not found for puzzle ID: ${puzzleId}`);
