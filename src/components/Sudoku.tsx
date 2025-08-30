@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text} from 'react-native';
-import {usePuzzlesDb, useUserDb} from '../db/dbProviders';
+import {useUserDb} from '../db/dbProviders';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
-import {ProgressSchema, PuzzleSchema} from "../types";
+import {ProgressSchema} from "../types";
 
 type SudokuProps = {
     puzzleId: string;
@@ -11,7 +11,6 @@ type SudokuProps = {
 
 export default function Sudoku({puzzleId}: SudokuProps) {
     const [loading, setLoading] = useState(true);
-    const puzzlesDb = usePuzzlesDb();
     const userDb = useUserDb();
     const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
 
@@ -19,50 +18,31 @@ export default function Sudoku({puzzleId}: SudokuProps) {
     const seedGrid = gridString.match(/.{1,9}/g) || [];
 
     useEffect(() => {
-        const loadOrCreateProgress = async () => {
+        const loadProgress = async () => {
             try {
-                // todo: ideally this component does not need access to puzzlesDb, user db should already be prepared by the content component above, here it should be expected, that for the given puzzle id an record can be found in the user db
-                // Check if progress exists first
-                let loadedSudoku = await userDb.getFirstAsync(
+                // Load progress record from user database
+                const loadedSudoku = await userDb.getFirstAsync(
                     'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
                     [puzzleId]
                 ) as ProgressSchema;
 
-                if (!loadedSudoku) {
-                    // Create new progress record if it doesn't exist
-                    const loadedArchetype = await puzzlesDb.getFirstAsync(
-                        'SELECT * FROM puzzle WHERE id = ? LIMIT 1;',
-                        [puzzleId]
-                    ) as PuzzleSchema;
-                    
-                    if (loadedArchetype) {
-                        await userDb.runAsync(
-                            'INSERT INTO progress (puzzleId, puzzle, moves, notes, solved) VALUES (?, ?, NULL, NULL, 0);',
-                            [puzzleId, loadedArchetype.seed]
-                        );
-                        
-                        // Reload the newly created progress record
-                        loadedSudoku = await userDb.getFirstAsync(
-                            'SELECT * FROM progress WHERE puzzleId = ? LIMIT 1;',
-                            [puzzleId]
-                        ) as ProgressSchema;
-                    }
-                }
-
                 if (loadedSudoku) {
                     setSudoku(loadedSudoku);
                     await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, loadedSudoku.puzzleId);
+                } else {
+                    // This should not happen - Content component ensures progress records exist
+                    console.error(`Progress record not found for puzzle ID: ${puzzleId}`);
                 }
             } catch (error) {
-                console.error('Failed to load or create Sudoku:', error);
+                console.error('Failed to load Sudoku progress:', error);
             } finally {
                 setLoading(false);
             }
         };
 
         setLoading(true);
-        loadOrCreateProgress();
-    }, [puzzleId, puzzlesDb, userDb]);
+        loadProgress();
+    }, [puzzleId, userDb]);
 
     if (loading) {
         return (
