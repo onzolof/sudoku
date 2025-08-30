@@ -33,7 +33,6 @@ export default function Content() {
         return records;
     }, [progressService]);
 
-    // Core function to find a random puzzle ID that's not in the exclude list
     const findRandomPuzzleId = useCallback(async (
         excludeIds: string[], 
         batchSizes: number[]
@@ -41,7 +40,6 @@ export default function Content() {
         return await puzzleService.findRandomPuzzleId(excludeIds, batchSizes);
     }, [puzzleService]);
 
-    // Pre-fetch next puzzle for instant swiping
     const preFetchNextPuzzle = useCallback(async (excludeIds: string[]) => {
         try {
             const puzzleId = await findRandomPuzzleId(excludeIds, [100, 300]);
@@ -53,7 +51,6 @@ export default function Content() {
         }
     }, [findRandomPuzzleId]);
 
-    // Pick random puzzle ID (avoiding long NOT IN queries)
     const pickRandomPuzzleId = useCallback(async (excludeIds: string[]): Promise<string | null> => {
         try {
             return await findRandomPuzzleId(excludeIds, [20, 40, 80, 160]);
@@ -63,7 +60,6 @@ export default function Content() {
         }
     }, [findRandomPuzzleId]);
 
-    // Create progress record for a new puzzle
     const createProgressRecord = useCallback(async (puzzleId: string) => {
         try {
             await gameService.createNewGame(puzzleId);
@@ -73,7 +69,6 @@ export default function Content() {
         }
     }, [gameService, loadProgressRecords]);
 
-    // Navigate to previous puzzle
     const goToPreviousPuzzle = useCallback(async () => {
         if (!canGoPrevious) return;
         
@@ -82,7 +77,6 @@ export default function Content() {
         await AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, previousRecord.puzzleId);
     }, [canGoPrevious, currentIndex, progressRecords]);
 
-    // Navigate to next puzzle or add new one
     const goToNextPuzzle = useCallback(async () => {
         if (currentIndex < progressRecords.length - 1) {
             // Go to existing next puzzle
@@ -108,44 +102,54 @@ export default function Content() {
         }
     }, [currentIndex, progressRecords, nextPuzzleId, createProgressRecord, loadProgressRecords, preFetchNextPuzzle]);
 
-    // todo: muss diese funktion so umfangreich sein?
+    // Extract initialization logic into smaller, focused functions
+    const restoreFromSavedPuzzle = useCallback(async (userProgress: PuzzleProgress[]) => {
+        const currentSudoku = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
+        
+        if (!currentSudoku) return false;
+        
+        const existingIndex = userProgress.findIndex(r => r.puzzleId === currentSudoku);
+        if (existingIndex === -1) {
+            await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
+            console.debug('Cleared invalid saved puzzle ID');
+            return false;
+        }
+
+        setCurrentPuzzleId(currentSudoku);
+        const excludeIds = [currentSudoku, ...userProgress.map(r => r.puzzleId)];
+        await preFetchNextPuzzle(excludeIds);
+        console.debug('Restored from saved puzzle');
+        return true;
+    }, [preFetchNextPuzzle]);
+
+    const createNewRandomPuzzle = useCallback(async (userProgress: PuzzleProgress[]) => {
+        const excludeIds = userProgress.map(r => r.puzzleId);
+        const newSudoku = await pickRandomPuzzleId(excludeIds);
+        console.debug('Random puzzle selected:', newSudoku);
+        
+        if (!newSudoku) {
+            console.error('No random puzzle available');
+            return false;
+        }
+        
+        setCurrentPuzzleId(newSudoku);
+        await createProgressRecord(newSudoku);
+        
+        // Pre-fetch next puzzle
+        const updatedRecords = await loadProgressRecords();
+        const updatedExcludeIds = [newSudoku, ...updatedRecords.map(r => r.puzzleId)];
+        await preFetchNextPuzzle(updatedExcludeIds);
+        return true;
+    }, [pickRandomPuzzleId, createProgressRecord, loadProgressRecords, preFetchNextPuzzle]);
+
     useEffect(() => {
         const initializeApp = async () => {
             setLoading(true);
             try {
                 const userProgress = await loadProgressRecords();
-                const currentSudoku = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-                
-                if (currentSudoku) {
-                    const existingIndex = userProgress.findIndex(r => r.puzzleId === currentSudoku);
-                    if (existingIndex !== -1) {
-                        setCurrentPuzzleId(currentSudoku);
-                        const excludeIds = [currentSudoku, ...userProgress.map(r => r.puzzleId)];
-                        await preFetchNextPuzzle(excludeIds);
-                        console.debug('Restored from saved puzzle');
-                        return;
-                    } else {
-                        await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-                        console.debug('Cleared invalid saved puzzle ID');
-                    }
-                }
-
-                // Pick a new random puzzle
-                const excludeIds = userProgress.map(r => r.puzzleId);
-                const newSudoku = await pickRandomPuzzleId(excludeIds);
-                console.debug('Random puzzle selected:', newSudoku);
-
-                if (newSudoku) {
-                    setCurrentPuzzleId(newSudoku);
-                    await createProgressRecord(newSudoku);
-
-                    // Pre-fetch next puzzle
-                    const updatedRecords = await loadProgressRecords();
-                    const updatedExcludeIds = [newSudoku, ...updatedRecords.map(r => r.puzzleId)];
-                    await preFetchNextPuzzle(updatedExcludeIds);
-                } else {
-                    // todo; show alert that no more puzzles are available
-                    console.error('No random puzzle available');
+                const restored = await restoreFromSavedPuzzle(userProgress);
+                if (!restored) {
+                    await createNewRandomPuzzle(userProgress);
                 }
             } catch (error) {
                 console.error('Failed to initialize app:', error);
@@ -155,7 +159,7 @@ export default function Content() {
         };
 
         initializeApp();
-    }, [loadProgressRecords, pickRandomPuzzleId, createProgressRecord, preFetchNextPuzzle]);
+    }, []);
 
     if (loading) {
         return (
@@ -167,15 +171,11 @@ export default function Content() {
 
     return (
         <View>
-            <TouchableOpacity
-                onPress={goToPreviousPuzzle}
-            >
+            <TouchableOpacity onPress={goToPreviousPuzzle} >
                 {canGoPrevious && <Text>←</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity
-                onPress={goToNextPuzzle}
-            >
+            <TouchableOpacity onPress={goToNextPuzzle} >
                 {canGoNext && <Text>→</Text>}
             </TouchableOpacity>
             
