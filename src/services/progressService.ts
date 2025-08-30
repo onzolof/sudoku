@@ -6,7 +6,7 @@ export class ProgressService {
     async loadProgressRecords(): Promise<PuzzleProgress[]> {
         try {
             const records = await this.userDb.getAllAsync(
-                'SELECT puzzleId, puzzle, moves, notes, solved FROM progress ORDER BY rowid ASC;'
+                'SELECT puzzleId, puzzle, moves, notes, solved FROM progress ORDER BY id ASC;'
             ) as PuzzleProgress[];
             return records;
         } catch (error) {
