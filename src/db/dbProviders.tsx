@@ -44,7 +44,6 @@ export function UserDbProvider({children}: { children: ReactNode }) {
     return (
         <SQLiteProvider
             databaseName="user.db"
-            assetSource={{assetId: require('../../user.db')}}
         >
             <UserDbInner>{children}</UserDbInner>
         </SQLiteProvider>
