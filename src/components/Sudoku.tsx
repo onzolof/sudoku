@@ -6,7 +6,7 @@ import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
 import {ProgressSchema} from "../types";
 
 type SudokuProps = {
-    puzzleId: string;
+    puzzleId: string | null;
 };
 
 export default function Sudoku({puzzleId}: SudokuProps) {
