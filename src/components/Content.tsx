@@ -2,6 +2,7 @@ import React, {useEffect, useState, useCallback, useMemo, useRef} from 'react';
 import {View, Text, FlatList, Dimensions} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
+import {useUserDbReady} from '../db/dbProviders';
 import Sudoku from './Sudoku';
 import {CURRENT_PROGRESS_ID_STORAGE_KEY} from "../constants";
 import {PuzzleProgress} from "../types";
@@ -10,12 +11,14 @@ const {width: SCREEN_WIDTH} = Dimensions.get("window");
 
 export default function Content() {
     const {puzzleService, progressService, gameService} = useServices();
+    const isUserDbReady = useUserDbReady();
 
     // todo: can i get rid of currentProgressId, since we have this information in ref?
     const [currentProgressId, setCurrentProgressId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [progressRecords, setProgressRecords] = useState<PuzzleProgress[]>([]);
     const [shouldScrollToSaved, setShouldScrollToSaved] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // noinspection TypeScriptValidateTypes
     const listRef = useRef<FlatList<PuzzleProgress>>(null);
@@ -45,10 +48,20 @@ export default function Content() {
     }, [loading, shouldScrollToSaved, currentIndex, progressRecords.length]);
 
     const loadProgressRecords = useCallback(async () => {
-        const records = await progressService.loadProgressRecords();
-        setProgressRecords(records);
-        return records;
-    }, [progressService]);
+        if (!isUserDbReady) {
+            console.debug('Database not ready, returning empty array');
+            return [];
+        }
+        
+        try {
+            const records = await progressService.loadProgressRecords();
+            setProgressRecords(records);
+            return records;
+        } catch (error) {
+            console.error('Failed to load progress records:', error);
+            return [];
+        }
+    }, [progressService, isUserDbReady]);
 
     const findRandomPuzzleId = useCallback(async (
         batchSizes: number[]
@@ -66,18 +79,28 @@ export default function Content() {
     }, [findRandomPuzzleId]);
 
     const createProgressRecord = useCallback(async (puzzleId: string) => {
+        if (!isUserDbReady) {
+            console.debug('Database not ready, cannot create progress record');
+            return null;
+        }
+        
         try {
             const progressId = await gameService.createNewGame(puzzleId);
-            await loadProgressRecords();
+            // Don't reload here - let the caller handle it if needed
             return progressId;
         } catch (error) {
             console.error('Failed to create progress record:', error);
             return null;
         }
-    }, [gameService, loadProgressRecords]);
+    }, [gameService, isUserDbReady]);
 
     // Extract initialization logic into smaller, focused functions
     const restoreFromSavedProgress = useCallback(async (userProgress: PuzzleProgress[]) => {
+        if (!isUserDbReady) {
+            console.debug('Database not ready, cannot restore progress');
+            return false;
+        }
+        
         const currentProgressIdStr = await AsyncStorage.getItem(CURRENT_PROGRESS_ID_STORAGE_KEY);
 
         if (!currentProgressIdStr) return false;
@@ -100,9 +123,14 @@ export default function Content() {
         setShouldScrollToSaved(true); // Mark that we should scroll to saved position
         console.debug('Restored from saved progress');
         return true;
-    }, []);
+    }, [isUserDbReady]);
 
     const createNewRandomPuzzle = useCallback(async (userProgress: PuzzleProgress[]) => {
+        if (!isUserDbReady) {
+            console.debug('Database not ready, cannot create new puzzle');
+            return false;
+        }
+        
         const newSudoku = await pickRandomPuzzleId();
         console.debug('Random puzzle selected:', newSudoku);
 
@@ -114,12 +142,12 @@ export default function Content() {
         const progressId = await createProgressRecord(newSudoku);
         if (progressId) {
             setCurrentProgressId(progressId);
+            // Reload progress records to get the updated list
+            await loadProgressRecords();
         }
 
-        // Reload progress records to get the updated list
-        await loadProgressRecords();
         return true;
-    }, [pickRandomPuzzleId, createProgressRecord, loadProgressRecords]);
+    }, [pickRandomPuzzleId, createProgressRecord, loadProgressRecords, isUserDbReady]);
 
     // Add scroll event handling to update current progress
     const handleScroll = useCallback((event: any) => {
@@ -135,7 +163,14 @@ export default function Content() {
         }
     }, [progressRecords, currentProgressId]);
 
+    // Main initialization effect
     useEffect(() => {
+        // Only run initialization when database is ready and not already initialized
+        if (!isUserDbReady || isInitialized) {
+            return;
+        }
+
+        console.debug('Starting app initialization...');
         const initializeApp = async () => {
             setLoading(true);
             try {
@@ -151,6 +186,8 @@ export default function Content() {
                     console.debug('Creating new random puzzle');
                     await createNewRandomPuzzle(userProgress);
                 }
+                setIsInitialized(true); // Mark initialization as complete
+                console.debug('App initialization complete');
             } catch (error) {
                 console.error('Failed to initialize app:', error);
             } finally {
@@ -159,12 +196,20 @@ export default function Content() {
         };
 
         initializeApp();
-    }, [loadProgressRecords, restoreFromSavedProgress, createNewRandomPuzzle]);
+    }, [isUserDbReady, isInitialized, loadProgressRecords, restoreFromSavedProgress, createNewRandomPuzzle]);
 
     if (loading) {
         return (
             <View className="flex-1 items-center justify-center">
                 <Text className="text-base text-foreground opacity-70">Loading sudoku...</Text>
+            </View>
+        );
+    }
+
+    if (!isUserDbReady) {
+        return (
+            <View className="flex-1 items-center justify-center">
+                <Text className="text-base text-foreground opacity-70">Initializing database...</Text>
             </View>
         );
     }

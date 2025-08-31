@@ -1,8 +1,9 @@
-import {createContext, ReactNode, useContext, useEffect} from 'react';
+import {createContext, ReactNode, useContext, useEffect, useState, useRef} from 'react';
 import {SQLiteProvider, useSQLiteContext, type SQLiteDatabase} from 'expo-sqlite';
 
 const PuzzlesDbCtx = createContext<SQLiteDatabase | null>(null);
 const UserDbCtx = createContext<SQLiteDatabase | null>(null);
+const UserDbReadyCtx = createContext<boolean>(false);
 
 function PuzzlesDbInner({children}: { children: ReactNode }) {
     const db = useSQLiteContext();
@@ -22,15 +23,36 @@ export function PuzzlesDbProvider({children}: { children: ReactNode }) {
 
 function UserDbInner({children}: { children: ReactNode }) {
     const db = useSQLiteContext();
+    const [isReady, setIsReady] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(false);
+    const initializationRef = useRef(false);
 
     useEffect(() => {
+        // Prevent multiple initialization attempts using ref
+        if (initializationRef.current || isReady) {
+            console.debug('Database initialization skipped - already initialized or ready');
+            return;
+        }
+
         (async () => {
+            // Double-check to prevent race conditions
+            if (isInitializing || isReady) {
+                console.debug('Database initialization skipped - already initializing or ready');
+                return;
+            }
+
+            console.debug('Starting database initialization...');
+            initializationRef.current = true;
+            setIsInitializing(true);
+            
             try {
                 // Check if table exists
                 const tableExists = await db.getAllAsync("SELECT name FROM sqlite_master WHERE type='table' AND name='progress';");
+                console.debug('Table check result:', tableExists.length > 0 ? 'exists' : 'does not exist');
                 
                 if (tableExists.length === 0) {
                     // Create new table with proper schema
+                    console.debug('Creating progress table...');
                     await db.runAsync(`
                         CREATE TABLE progress (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,19 +65,34 @@ function UserDbInner({children}: { children: ReactNode }) {
                     `);
                     
                     // Create indexes for efficient pagination
+                    console.debug('Creating indexes...');
                     await db.runAsync('CREATE INDEX idx_progress_id ON progress(id);');
                     await db.runAsync('CREATE INDEX idx_progress_puzzleId ON progress(puzzleId);');
                     await db.runAsync('CREATE INDEX idx_progress_solved ON progress(solved);');
                     
                     console.log('Created new progress table with id column and indexes');
+                } else {
+                    console.log('Progress table already exists, skipping creation');
                 }
+                
+                console.debug('Database initialization complete, setting ready state');
+                setIsReady(true);
             } catch (error) {
                 console.error('Error creating database schema:', error);
+                // Even on error, mark as ready to prevent infinite loading
+                setIsReady(true);
+            } finally {
+                setIsInitializing(false);
+                console.debug('Database initialization state reset');
             }
         })();
-    }, [db]);
+    }, [db, isInitializing, isReady]);
 
-    return <UserDbCtx.Provider value={db}>{children}</UserDbCtx.Provider>;
+    return (
+        <UserDbReadyCtx.Provider value={isReady}>
+            <UserDbCtx.Provider value={db}>{children}</UserDbCtx.Provider>
+        </UserDbReadyCtx.Provider>
+    );
 }
 
 export function UserDbProvider({children}: { children: ReactNode }) {
@@ -78,4 +115,9 @@ export const useUserDb = () => {
     const db = useContext(UserDbCtx);
     if (!db) throw new Error('useUserDb must be used inside <UserDbProvider>');
     return db;
+};
+
+export const useUserDbReady = () => {
+    const isReady = useContext(UserDbReadyCtx);
+    return isReady;
 };
