@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useCallback, useMemo, useRef} from 'react';
-import {View, Text, FlatList, Dimensions} from 'react-native';
+import {View, Text, FlatList, Dimensions, TouchableOpacity} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
 import {useUserDbReady} from '../db/dbProviders';
@@ -52,7 +52,7 @@ export default function Content() {
             console.debug('Database not ready, returning empty array');
             return [];
         }
-        
+
         try {
             const records = await progressService.loadProgressRecords();
             setProgressRecords(records);
@@ -83,7 +83,7 @@ export default function Content() {
             console.debug('Database not ready, cannot create progress record');
             return null;
         }
-        
+
         try {
             const progressId = await gameService.createNewGame(puzzleId);
             // Don't reload here - let the caller handle it if needed
@@ -100,7 +100,7 @@ export default function Content() {
             console.debug('Database not ready, cannot restore progress');
             return false;
         }
-        
+
         const currentProgressIdStr = await AsyncStorage.getItem(CURRENT_PROGRESS_ID_STORAGE_KEY);
 
         if (!currentProgressIdStr) return false;
@@ -130,7 +130,7 @@ export default function Content() {
             console.debug('Database not ready, cannot create new puzzle');
             return false;
         }
-        
+
         const newSudoku = await pickRandomPuzzleId();
         console.debug('Random puzzle selected:', newSudoku);
 
@@ -149,11 +149,45 @@ export default function Content() {
         return true;
     }, [pickRandomPuzzleId, createProgressRecord, loadProgressRecords, isUserDbReady]);
 
+    const addNewRandomPuzzle = useCallback(async () => {
+        if (!isUserDbReady) {
+            console.debug('Database not ready, cannot add new puzzle');
+            return;
+        }
+
+        try {
+            const newSudoku = await pickRandomPuzzleId();
+            if (!newSudoku) {
+                console.error('No random puzzle available');
+                return;
+            }
+
+            const progressId = await createProgressRecord(newSudoku);
+            if (progressId) {
+                // Reload progress records to get the updated list
+                await loadProgressRecords();
+                // Set the new puzzle as current and scroll to it
+                setCurrentProgressId(progressId);
+                // Small delay to ensure the new item is rendered
+                setTimeout(() => {
+                    if (listRef.current && progressRecords.length > 0) {
+                        listRef.current.scrollToIndex({
+                            index: progressRecords.length,
+                            animated: true
+                        });
+                    }
+                }, 100);
+            }
+        } catch (error) {
+            console.error('Failed to add new random puzzle:', error);
+        }
+    }, [pickRandomPuzzleId, createProgressRecord, loadProgressRecords, isUserDbReady, progressRecords.length]);
+
     // Add scroll event handling to update current progress
     const handleScroll = useCallback((event: any) => {
         const offsetX = event.nativeEvent.contentOffset.x;
         const index = Math.round(offsetX / SCREEN_WIDTH);
-        
+
         if (index >= 0 && index < progressRecords.length) {
             const newProgressId = progressRecords[index].id;
             if (newProgressId !== currentProgressId) {
@@ -177,10 +211,10 @@ export default function Content() {
                 // Load progress records first
                 const userProgress = await loadProgressRecords();
                 console.debug('Progress records loaded:', userProgress.length);
-                
+
                 // Try to restore from saved state
                 const restored = await restoreFromSavedProgress(userProgress);
-                
+
                 if (!restored) {
                     // Create new random puzzle if no valid saved state
                     console.debug('Creating new random puzzle');
@@ -224,53 +258,63 @@ export default function Content() {
 
     // noinspection TypeScriptUnresolvedReference,TypeScriptValidateTypes
     return (
-        <FlatList<PuzzleProgress>
-            ref={listRef}
-            data={progressRecords}
-            keyExtractor={(item) => item.id.toString()}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={true} // todo: just for testing
-            renderItem={({item}) => (
-                <View className="w-screen flex-1 items-center justify-center">
-                    <Sudoku progressId={item.id}/>
+        <View>
+                <View >
+                    <TouchableOpacity
+                        onPress={addNewRandomPuzzle}
+                        className="w-12 h-12 bg-blue-500 rounded-full items-center justify-center"
+                    >
+                        <Text className="text-white text-2xl font-bold">+</Text>
+                    </TouchableOpacity>
                 </View>
-            )}
-            initialNumToRender={2}
-            windowSize={3}
-            removeClippedSubviews
-            // Start on currentSudoku the first time the list mounts:
-            initialScrollIndex={currentIndex >= 0 ? currentIndex : undefined}
-            // Help FlatList jump to indices without measuring:
-            getItemLayout={(_, index) => ({
-                length: SCREEN_WIDTH,
-                offset: SCREEN_WIDTH * index,
-                index,
-            })}
-            // If RN can't yet scroll to that index (not measured), retry shortly:
-            onScrollToIndexFailed={(info) => {
-                setTimeout(() => {
-                    listRef.current?.scrollToIndex({
-                        index: info.index,
-                        animated: false,
-                    });
-                }, 50);
-            }}
-            onScroll={handleScroll} // Add scroll handling
-            scrollEventThrottle={16} // Optimize scroll performance
-            onLayout={() => {
-                // Additional safety: scroll to saved position after layout
-                if (shouldScrollToSaved && currentIndex >= 0 && progressRecords.length > 0) {
-                    setTimeout(() => {
-                        listRef.current?.scrollToIndex({
-                            index: currentIndex,
-                            animated: false
-                        });
-                        setShouldScrollToSaved(false);
-                    }, 100);
-                }
-            }}
-        />
+                <FlatList<PuzzleProgress>
+                    ref={listRef}
+                    data={progressRecords}
+                    keyExtractor={(item) => item.id.toString()}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={true} // todo: just for testing
+                    renderItem={({item}) => (
+                        <View className="w-screen flex-1 items-center justify-center">
+                            <Sudoku progressId={item.id}/>
+                        </View>
+                    )}
+                    initialNumToRender={2}
+                    windowSize={3}
+                    removeClippedSubviews
+                    // Start on currentSudoku the first time the list mounts:
+                    initialScrollIndex={currentIndex >= 0 ? currentIndex : undefined}
+                    // Help FlatList jump to indices without measuring:
+                    getItemLayout={(_, index) => ({
+                        length: SCREEN_WIDTH,
+                        offset: SCREEN_WIDTH * index,
+                        index,
+                    })}
+                    // If RN can't yet scroll to that index (not measured), retry shortly:
+                    onScrollToIndexFailed={(info) => {
+                        setTimeout(() => {
+                            listRef.current?.scrollToIndex({
+                                index: info.index,
+                                animated: false,
+                            });
+                        }, 50);
+                    }}
+                    onScroll={handleScroll} // Add scroll handling
+                    scrollEventThrottle={16} // Optimize scroll performance
+                    onLayout={() => {
+                        // Additional safety: scroll to saved position after layout
+                        if (shouldScrollToSaved && currentIndex >= 0 && progressRecords.length > 0) {
+                            setTimeout(() => {
+                                listRef.current?.scrollToIndex({
+                                    index: currentIndex,
+                                    animated: false
+                                });
+                                setShouldScrollToSaved(false);
+                            }, 100);
+                        }
+                    }}
+                />
+        </View>
     )
 }
 
