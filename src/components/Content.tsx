@@ -3,7 +3,7 @@ import {View, Text, FlatList, Dimensions} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
 import Sudoku from './Sudoku';
-import {CURRENT_SUDOKU_ID_STORAGE_KEY} from "../constants";
+import {CURRENT_PROGRESS_ID_STORAGE_KEY} from "../constants";
 import {PuzzleProgress} from "../types";
 
 const {width: SCREEN_WIDTH} = Dimensions.get("window");
@@ -11,10 +11,8 @@ const {width: SCREEN_WIDTH} = Dimensions.get("window");
 export default function Content() {
     const {puzzleService, progressService, gameService} = useServices();
 
-    // todo: can i get rid of currentPuzzleId, since we have this information in ref?
-    const [currentPuzzleId, setCurrentPuzzleId] = useState<string | null>(null);
-    // todo: can i get rid of this nextPuzzle state?
-    const [nextPuzzleId, setNextPuzzleId] = useState<string | null>(null);
+    // todo: can i get rid of currentProgressId, since we have this information in ref?
+    const [currentProgressId, setCurrentProgressId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [progressRecords, setProgressRecords] = useState<PuzzleProgress[]>([]);
     const [shouldScrollToSaved, setShouldScrollToSaved] = useState(false);
@@ -22,13 +20,13 @@ export default function Content() {
     // noinspection TypeScriptValidateTypes
     const listRef = useRef<FlatList<PuzzleProgress>>(null);
     const currentIndex = useMemo(() =>
-            currentPuzzleId
-                ? progressRecords.findIndex(r => r.puzzleId === currentPuzzleId)
+            currentProgressId
+                ? progressRecords.findIndex(r => r.id === currentProgressId)
                 : -1,
-        [currentPuzzleId, progressRecords]
+        [currentProgressId, progressRecords]
     );
 
-    // After data + currentIndex are known, ensure we’re scrolled correctly.
+    // After data + currentIndex are known, ensure we're scrolled correctly.
     useEffect(() => {
         if (!loading && shouldScrollToSaved && currentIndex >= 0 && progressRecords.length > 0) {
             console.debug('Attempting to scroll to index:', currentIndex, 'of', progressRecords.length);
@@ -53,26 +51,14 @@ export default function Content() {
     }, [progressService]);
 
     const findRandomPuzzleId = useCallback(async (
-        excludeIds: string[],
         batchSizes: number[]
     ): Promise<string | null> => {
-        return await puzzleService.findRandomPuzzleId(excludeIds, batchSizes);
+        return await puzzleService.findRandomPuzzleId([], batchSizes);
     }, [puzzleService]);
 
-    const preFetchNextPuzzle = useCallback(async (excludeIds: string[]) => {
+    const pickRandomPuzzleId = useCallback(async (): Promise<string | null> => {
         try {
-            const puzzleId = await findRandomPuzzleId(excludeIds, [100, 300]);
-            if (puzzleId) {
-                setNextPuzzleId(puzzleId);
-            }
-        } catch (error) {
-            console.error('Failed to pre-fetch next puzzle:', error);
-        }
-    }, [findRandomPuzzleId]);
-
-    const pickRandomPuzzleId = useCallback(async (excludeIds: string[]): Promise<string | null> => {
-        try {
-            return await findRandomPuzzleId(excludeIds, [20, 40, 80, 160]);
+            return await findRandomPuzzleId([20, 40, 80, 160]);
         } catch (error) {
             console.error('Failed to pick random puzzle:', error);
             return null;
@@ -81,36 +67,43 @@ export default function Content() {
 
     const createProgressRecord = useCallback(async (puzzleId: string) => {
         try {
-            await gameService.createNewGame(puzzleId);
+            const progressId = await gameService.createNewGame(puzzleId);
             await loadProgressRecords();
+            return progressId;
         } catch (error) {
             console.error('Failed to create progress record:', error);
+            return null;
         }
     }, [gameService, loadProgressRecords]);
 
     // Extract initialization logic into smaller, focused functions
-    const restoreFromSavedPuzzle = useCallback(async (userProgress: PuzzleProgress[]) => {
-        const currentSudoku = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
+    const restoreFromSavedProgress = useCallback(async (userProgress: PuzzleProgress[]) => {
+        const currentProgressIdStr = await AsyncStorage.getItem(CURRENT_PROGRESS_ID_STORAGE_KEY);
 
-        if (!currentSudoku) return false;
+        if (!currentProgressIdStr) return false;
 
-        const existingIndex = userProgress.findIndex(r => r.puzzleId === currentSudoku);
-        if (existingIndex === -1) {
-            await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-            console.debug('Cleared invalid saved puzzle ID');
+        const currentId = parseInt(currentProgressIdStr, 10);
+        if (isNaN(currentId)) {
+            await AsyncStorage.removeItem(CURRENT_PROGRESS_ID_STORAGE_KEY);
+            console.debug('Cleared invalid saved progress ID');
             return false;
         }
 
-        setCurrentPuzzleId(currentSudoku);
-        const excludeIds = [currentSudoku, ...userProgress.map(r => r.puzzleId)];
-        await preFetchNextPuzzle(excludeIds);
-        console.debug('Restored from saved puzzle');
+        const existingIndex = userProgress.findIndex(r => r.id === currentId);
+        if (existingIndex === -1) {
+            await AsyncStorage.removeItem(CURRENT_PROGRESS_ID_STORAGE_KEY);
+            console.debug('Cleared invalid saved progress ID');
+            return false;
+        }
+
+        setCurrentProgressId(currentId);
+        setShouldScrollToSaved(true); // Mark that we should scroll to saved position
+        console.debug('Restored from saved progress');
         return true;
-    }, [preFetchNextPuzzle]);
+    }, []);
 
     const createNewRandomPuzzle = useCallback(async (userProgress: PuzzleProgress[]) => {
-        const excludeIds = userProgress.map(r => r.puzzleId);
-        const newSudoku = await pickRandomPuzzleId(excludeIds);
+        const newSudoku = await pickRandomPuzzleId();
         console.debug('Random puzzle selected:', newSudoku);
 
         if (!newSudoku) {
@@ -118,58 +111,43 @@ export default function Content() {
             return false;
         }
 
-        setCurrentPuzzleId(newSudoku);
-        await createProgressRecord(newSudoku);
+        const progressId = await createProgressRecord(newSudoku);
+        if (progressId) {
+            setCurrentProgressId(progressId);
+        }
 
-        // Pre-fetch next puzzle
-        const updatedRecords = await loadProgressRecords();
-        const updatedExcludeIds = [newSudoku, ...updatedRecords.map(r => r.puzzleId)];
-        await preFetchNextPuzzle(updatedExcludeIds);
+        // Reload progress records to get the updated list
+        await loadProgressRecords();
         return true;
-    }, [pickRandomPuzzleId, createProgressRecord, loadProgressRecords, preFetchNextPuzzle]);
+    }, [pickRandomPuzzleId, createProgressRecord, loadProgressRecords]);
 
-    // Add scroll event handling to update current puzzle
+    // Add scroll event handling to update current progress
     const handleScroll = useCallback((event: any) => {
         const offsetX = event.nativeEvent.contentOffset.x;
         const index = Math.round(offsetX / SCREEN_WIDTH);
         
         if (index >= 0 && index < progressRecords.length) {
-            const newPuzzleId = progressRecords[index].puzzleId;
-            if (newPuzzleId !== currentPuzzleId) {
-                setCurrentPuzzleId(newPuzzleId);
-                AsyncStorage.setItem(CURRENT_SUDOKU_ID_STORAGE_KEY, newPuzzleId);
+            const newProgressId = progressRecords[index].id;
+            if (newProgressId !== currentProgressId) {
+                setCurrentProgressId(newProgressId);
+                AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, newProgressId.toString());
             }
         }
-    }, [progressRecords, currentPuzzleId]);
+    }, [progressRecords, currentProgressId]);
 
     useEffect(() => {
         const initializeApp = async () => {
             setLoading(true);
             try {
-                // First, try to restore from saved state
-                const savedPuzzleId = await AsyncStorage.getItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-                console.debug('Saved puzzle ID found:', savedPuzzleId);
-                
-                // Load progress records
+                // Load progress records first
                 const userProgress = await loadProgressRecords();
                 console.debug('Progress records loaded:', userProgress.length);
                 
-                if (savedPuzzleId && userProgress.some(r => r.puzzleId === savedPuzzleId)) {
-                    // Restore from saved state
-                    setCurrentPuzzleId(savedPuzzleId);
-                    setShouldScrollToSaved(true); // Mark that we should scroll to saved position
-                    console.debug('Restored from saved puzzle:', savedPuzzleId);
-                    
-                    // Pre-fetch next puzzle for smooth swiping
-                    const excludeIds = [savedPuzzleId, ...userProgress.map(r => r.puzzleId)];
-                    await preFetchNextPuzzle(excludeIds);
-                } else {
+                // Try to restore from saved state
+                const restored = await restoreFromSavedProgress(userProgress);
+                
+                if (!restored) {
                     // Create new random puzzle if no valid saved state
-                    if (savedPuzzleId) {
-                        await AsyncStorage.removeItem(CURRENT_SUDOKU_ID_STORAGE_KEY);
-                        console.debug('Cleared invalid saved puzzle ID');
-                    }
-                    
                     console.debug('Creating new random puzzle');
                     await createNewRandomPuzzle(userProgress);
                 }
@@ -181,7 +159,7 @@ export default function Content() {
         };
 
         initializeApp();
-    }, [loadProgressRecords, preFetchNextPuzzle, createNewRandomPuzzle]);
+    }, [loadProgressRecords, restoreFromSavedProgress, createNewRandomPuzzle]);
 
     if (loading) {
         return (
@@ -191,18 +169,26 @@ export default function Content() {
         );
     }
 
+    // todo:
+     // 1. ✅ use progress id instead of puzzle id and drop unique-puzzle constraint
+     // 2. implementing rolling window on progress records (keep at max 10 puzzles in the memory)
+     // 3. draw a new sudoku from puzzles db and create a corresponding instance on user db when swiping right when no progress records exist anymore (maybe create a dedicated button for it first)
+     // 4. ask what could improved
+     // 5. extract gameLogic to gameService.ts
+     // 6. review everything and test properly
+
     // noinspection TypeScriptUnresolvedReference,TypeScriptValidateTypes
     return (
         <FlatList<PuzzleProgress>
             ref={listRef}
             data={progressRecords}
-            keyExtractor={(item) => item.puzzleId}
+            keyExtractor={(item) => item.id.toString()}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={true} // todo: just for testing
             renderItem={({item}) => (
                 <View className="w-screen flex-1 items-center justify-center">
-                    <Sudoku puzzleId={item.puzzleId}/>
+                    <Sudoku progressId={item.id}/>
                 </View>
             )}
             initialNumToRender={2}
@@ -216,7 +202,7 @@ export default function Content() {
                 offset: SCREEN_WIDTH * index,
                 index,
             })}
-            // If RN can’t yet scroll to that index (not measured), retry shortly:
+            // If RN can't yet scroll to that index (not measured), retry shortly:
             onScrollToIndexFailed={(info) => {
                 setTimeout(() => {
                     listRef.current?.scrollToIndex({

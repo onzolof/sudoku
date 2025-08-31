@@ -1,4 +1,4 @@
-export const CURRENT_SUDOKU_ID_STORAGE_KEY = '@current_sudoku_id';
+export const CURRENT_PROGRESS_ID_STORAGE_KEY = '@current_progress_id';
 
 
 

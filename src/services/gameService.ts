@@ -9,13 +9,12 @@ export class GameService {
     ) {
     }
 
-    async createNewGame(puzzleId: string): Promise<void> {
+    async createNewGame(puzzleId: string): Promise<number> {
         const puzzleSeed = await this.puzzleService.getPuzzleSeed(puzzleId);
         if (!puzzleSeed) {
             throw new Error(`Puzzle seed not found for ID: ${puzzleId}`);
         }
 
-        await this.progressService.createProgressRecord(puzzleId, puzzleSeed);
+        return await this.progressService.createProgressRecord(puzzleId, puzzleSeed);
     }
-
 }

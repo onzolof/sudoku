@@ -1,4 +1,5 @@
 export interface PuzzleProgress {
+    id: number;
     puzzleId: string;
     puzzle: string;
     moves: string | null;
@@ -18,6 +19,7 @@ export interface PuzzleSchema {
     added_at: number;
 }
 export interface ProgressSchema {
+    id: number;
     puzzleId: string;
     puzzle: string;          // the original starting point of the sudoku
     moves: string | null;    // stored as JSON TEXT

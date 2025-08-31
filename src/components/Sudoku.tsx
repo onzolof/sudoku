@@ -4,10 +4,10 @@ import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
 
 type SudokuProps = {
-    puzzleId: string | null;
+    progressId: number;
 };
 
-export default function Sudoku({puzzleId}: SudokuProps) {
+export default function Sudoku({progressId}: SudokuProps) {
     const {progressService} = useServices();
     const [loading, setLoading] = useState(true);
     const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
@@ -17,15 +17,13 @@ export default function Sudoku({puzzleId}: SudokuProps) {
 
     useEffect(() => {
         const loadProgress = async () => {
-            if (!puzzleId) return;
-
             try {
-                const loadedSudoku = await progressService.getProgressRecord(puzzleId);
+                const loadedSudoku = await progressService.getProgressRecordById(progressId);
                 if (loadedSudoku) {
                     setSudoku(loadedSudoku);
                 } else {
                     // This should not happen - Content component ensures progress records exist
-                    console.error(`Progress record not found for puzzle ID: ${puzzleId}`);
+                    console.error(`Progress record not found for progress ID: ${progressId}`);
                 }
             } catch (error) {
                 console.error('Failed to load Sudoku progress:', error);
@@ -36,7 +34,7 @@ export default function Sudoku({puzzleId}: SudokuProps) {
 
         setLoading(true);
         loadProgress();
-    }, [puzzleId, progressService]);
+    }, [progressId, progressService]);
 
     if (loading) {
         return (
@@ -50,7 +48,7 @@ export default function Sudoku({puzzleId}: SudokuProps) {
         return (
             <View className="flex-1 items-center justify-center">
                 <Text className="text-base text-foreground">Puzzle not found</Text>
-                <Text className="text-xs text-muted">ID: {puzzleId}</Text>
+                <Text className="text-xs text-muted">Progress ID: {progressId}</Text>
             </View>
         );
     }
