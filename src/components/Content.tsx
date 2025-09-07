@@ -10,6 +10,13 @@ export default function Content() {
     const {puzzleService, progressService} = useServices();
     const isUserDbReady = useUserDbReady();
 
+    // todo: next steps
+      // create caveat down button which enables configuring the difficulty (store in local storage) and create new sudokus according to the difficulty
+      // create dark mode toggle
+      // enable settings buttons on pulling down (for 5 seconds)
+      // style the main page
+      // implement the sudoku logic and component
+
     const [currentProgressId, setCurrentProgressId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
