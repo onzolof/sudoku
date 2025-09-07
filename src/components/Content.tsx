@@ -16,6 +16,7 @@ export default function Content() {
     const [canGoLeft, setCanGoLeft] = useState(false);
     const [canGoRight, setCanGoRight] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [currentPuzzleDifficulty, setCurrentPuzzleDifficulty] = useState<string | null>(null);
 
     // Check navigation availability
     const checkNavigationAvailability = useCallback(async () => {
@@ -40,6 +41,24 @@ export default function Content() {
         }
     }, [progressService, isUserDbReady, currentProgressId]);
 
+    // Load puzzle difficulty for current progress
+    const loadPuzzleDifficulty = useCallback(async (progressId: number) => {
+        if (!isUserDbReady) return;
+
+        try {
+            const progressRecord = await progressService.getProgressRecordById(progressId);
+            if (progressRecord) {
+                const puzzle = await puzzleService.getPuzzleById(progressRecord.puzzleId);
+                if (puzzle) {
+                    setCurrentPuzzleDifficulty(puzzle.difficulty);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load puzzle difficulty:', error);
+            setCurrentPuzzleDifficulty(null);
+        }
+    }, [progressService, puzzleService, isUserDbReady]);
+
     // Navigation functions
     const navigateToPrevious = useCallback(async () => {
         if (!canGoLeft || isNavigating || !currentProgressId) return;
@@ -48,11 +67,12 @@ export default function Content() {
         try {
             const currentOffset = await progressService.getProgressRecordOffset(currentProgressId);
             const previousRecords = await progressService.getProgressRecordsPaginated(currentOffset - 1, 1);
-            
+
             if (previousRecords.length > 0) {
                 const previousId = previousRecords[0].id;
                 setCurrentProgressId(previousId);
                 await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, previousId.toString());
+                await loadPuzzleDifficulty(previousId);
             }
         } catch (error) {
             console.error('Failed to navigate to previous puzzle:', error);
@@ -78,6 +98,7 @@ export default function Content() {
             if (progressId) {
                 setCurrentProgressId(progressId);
                 await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, progressId.toString());
+                await loadPuzzleDifficulty(progressId);
             }
             return true;
         } catch (error) {
@@ -99,15 +120,16 @@ export default function Content() {
 
             const currentOffset = await progressService.getProgressRecordOffset(currentProgressId);
             const totalCount = await progressService.getTotalProgressCount();
-            
+
             if (currentOffset < totalCount - 1) {
                 // There are more records, load the next one
                 const nextRecords = await progressService.getProgressRecordsPaginated(currentOffset + 1, 1);
-                
+
                 if (nextRecords.length > 0) {
                     const nextId = nextRecords[0].id;
                     setCurrentProgressId(nextId);
                     await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, nextId.toString());
+                    await loadPuzzleDifficulty(nextId);
                 }
             } else {
                 // No more records, create a new puzzle
@@ -157,6 +179,7 @@ export default function Content() {
                 const savedProgressId = await restoreFromSavedProgress();
                 if (savedProgressId) {
                     setCurrentProgressId(savedProgressId);
+                    await loadPuzzleDifficulty(savedProgressId);
                     console.debug('Restored from saved progress:', savedProgressId);
                 } else {
                     console.debug('Creating new random puzzle');
@@ -183,7 +206,7 @@ export default function Content() {
     if (loading || !isUserDbReady) {
         return (
             <View className="flex-1 items-center justify-center">
-                <ActivityIndicator size="large" color="#3B82F6" />
+                <ActivityIndicator size="large" color="#3B82F6"/>
                 <Text className="text-base text-gray-600 mt-4">
                     {loading ? 'Loading sudoku...' : 'Initializing database...'}
                 </Text>
@@ -193,52 +216,50 @@ export default function Content() {
 
     return (
         <View className="flex">
-            {/* Header */}
-            <View className="flex-row justify-center items-center px-4 py-2">
+
+            {/* Header with navigation buttons */}
+            <View className="flex-row justify-between items-center px-4 py-2">
                 <Text className="text-lg font-semibold text-black">
-                    Puzzle {currentProgressId}
+                    {currentPuzzleDifficulty ? currentPuzzleDifficulty.toUpperCase() : 'PUZZLE'} ({currentProgressId})
                 </Text>
+                
+                <View className="flex-row gap-2">
+                    {canGoLeft && !isNavigating &&
+                        <TouchableOpacity
+                            onPress={navigateToPrevious}
+                            className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
+                        >
+                            <Text className="text-white text-xl font-bold">←</Text>
+                        </TouchableOpacity>
+                    }
+
+                    {!isNavigating &&
+                        <TouchableOpacity
+                            onPress={navigateToNext}
+                            className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
+                        >
+                            <Text className="text-white text-xl font-bold">→</Text>
+                        </TouchableOpacity>
+                    }
+                </View>
             </View>
 
             {/* Main content area */}
             <View className="flex items-center justify-center">
                 {isNavigating ? (
                     <View className="items-center">
-                        <ActivityIndicator size="large" color="#3B82F6" />
+                        <ActivityIndicator size="large" color="#3B82F6"/>
                         <Text className="text-base text-gray-600 mt-4">
                             Loading puzzle...
                         </Text>
                     </View>
                 ) : currentProgressId ? (
-                    <Sudoku progressId={currentProgressId} />
+                    <Sudoku progressId={currentProgressId}/>
                 ) : (
                     <Text className="text-base text-gray-600">
                         No puzzle loaded
                     </Text>
                 )}
-            </View>
-
-            {/* Navigation buttons */}
-            <View className="flex-row justify-between items-center px-8 py-4">
-                <TouchableOpacity
-                    onPress={navigateToPrevious}
-                    disabled={!canGoLeft || isNavigating}
-                    className={`w-16 h-16 rounded-full items-center justify-center ${
-                        canGoLeft && !isNavigating ? 'bg-gray-600' : 'bg-gray-300'
-                    }`}
-                >
-                    <Text className="text-white text-2xl font-bold">←</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    onPress={navigateToNext}
-                    disabled={isNavigating}
-                    className={`w-16 h-16 rounded-full items-center justify-center ${
-                        !isNavigating ? 'bg-gray-600' : 'bg-gray-300'
-                    }`}
-                >
-                    <Text className="text-white text-2xl font-bold">→</Text>
-                </TouchableOpacity>
             </View>
         </View>
     );

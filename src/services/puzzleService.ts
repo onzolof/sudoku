@@ -37,4 +37,18 @@ export class PuzzleService {
             return null;
         }
     }
+
+    async getPuzzleById(puzzleId: string): Promise<PuzzleSchema | null> {
+        try {
+            const puzzle = await this.puzzlesDb.getFirstAsync(
+                'SELECT * FROM puzzle WHERE id = ? LIMIT 1;',
+                [puzzleId]
+            ) as PuzzleSchema | null;
+
+            return puzzle;
+        } catch (error) {
+            console.error('Failed to get puzzle by ID:', error);
+            return null;
+        }
+    }
 }
