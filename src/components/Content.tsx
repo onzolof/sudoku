@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useCallback} from 'react';
-import {View, Text, TouchableOpacity, ActivityIndicator} from 'react-native';
+import {View, Text, TouchableOpacity} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
 import {useUserDbReady} from '../db/dbProviders';
@@ -59,12 +59,22 @@ export default function Content() {
         }
     }, [progressService, puzzleService, isUserDbReady]);
 
+    // Simple transition handler
+    const performTransition = useCallback(async (operation: () => Promise<void>) => {
+        setIsNavigating(true);
+
+        try {
+            await operation();
+        } finally {
+            setIsNavigating(false);
+        }
+    }, []);
+
     // Navigation functions
     const navigateToPrevious = useCallback(async () => {
         if (!canGoLeft || isNavigating || !currentProgressId) return;
 
-        setIsNavigating(true);
-        try {
+        await performTransition(async () => {
             const currentOffset = await progressService.getProgressRecordOffset(currentProgressId);
             const previousRecords = await progressService.getProgressRecordsPaginated(currentOffset - 1, 1);
 
@@ -74,12 +84,8 @@ export default function Content() {
                 await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, previousId.toString());
                 await loadPuzzleDifficulty(previousId);
             }
-        } catch (error) {
-            console.error('Failed to navigate to previous puzzle:', error);
-        } finally {
-            setIsNavigating(false);
-        }
-    }, [canGoLeft, isNavigating, currentProgressId, progressService]);
+        });
+    }, [canGoLeft, isNavigating, currentProgressId, progressService, performTransition]);
 
     const createNewRandomPuzzle = useCallback(async () => {
         if (!isUserDbReady) {
@@ -110,8 +116,7 @@ export default function Content() {
     const navigateToNext = useCallback(async () => {
         if (isNavigating) return;
 
-        setIsNavigating(true);
-        try {
+        await performTransition(async () => {
             if (!currentProgressId) {
                 // No current puzzle, create a new one
                 await createNewRandomPuzzle();
@@ -135,12 +140,8 @@ export default function Content() {
                 // No more records, create a new puzzle
                 await createNewRandomPuzzle();
             }
-        } catch (error) {
-            console.error('Failed to navigate to next puzzle:', error);
-        } finally {
-            setIsNavigating(false);
-        }
-    }, [isNavigating, currentProgressId, progressService, createNewRandomPuzzle]);
+        });
+    }, [isNavigating, currentProgressId, progressService, createNewRandomPuzzle, performTransition]);
 
     const restoreFromSavedProgress = useCallback(async () => {
         if (!isUserDbReady) {
@@ -206,8 +207,7 @@ export default function Content() {
     if (loading || !isUserDbReady) {
         return (
             <View className="flex-1 items-center justify-center">
-                <ActivityIndicator size="large" color="#3B82F6"/>
-                <Text className="text-base text-gray-600 mt-4">
+                <Text className="text-base text-gray-600">
                     {loading ? 'Loading sudoku...' : 'Initializing database...'}
                 </Text>
             </View>
@@ -222,9 +222,9 @@ export default function Content() {
                 <Text className="text-lg font-semibold text-black">
                     {currentPuzzleDifficulty ? currentPuzzleDifficulty.toUpperCase() : 'PUZZLE'} ({currentProgressId})
                 </Text>
-                
+
                 <View className="flex-row gap-2">
-                    {canGoLeft && !isNavigating &&
+                    {canGoLeft &&
                         <TouchableOpacity
                             onPress={navigateToPrevious}
                             className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
@@ -233,27 +233,18 @@ export default function Content() {
                         </TouchableOpacity>
                     }
 
-                    {!isNavigating &&
-                        <TouchableOpacity
-                            onPress={navigateToNext}
-                            className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
-                        >
-                            <Text className="text-white text-xl font-bold">→</Text>
-                        </TouchableOpacity>
-                    }
+                    <TouchableOpacity
+                        onPress={navigateToNext}
+                        className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
+                    >
+                        <Text className="text-white text-xl font-bold">→</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
 
             {/* Main content area */}
             <View className="flex items-center justify-center">
-                {isNavigating ? (
-                    <View className="items-center">
-                        <ActivityIndicator size="large" color="#3B82F6"/>
-                        <Text className="text-base text-gray-600 mt-4">
-                            Loading puzzle...
-                        </Text>
-                    </View>
-                ) : currentProgressId ? (
+                {currentProgressId ? (
                     <Sudoku progressId={currentProgressId}/>
                 ) : (
                     <Text className="text-base text-gray-600">

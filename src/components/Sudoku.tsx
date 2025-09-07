@@ -36,13 +36,14 @@ function Sudoku({progressId}: SudokuProps) {
         loadProgress();
     }, [progressId, progressService]);
 
-    if (loading) {
-        return (
-            <View className="flex-1 items-center justify-center">
-                <Text className="text-base text-foreground opacity-70">Loading puzzle...</Text>
-            </View>
-        );
-    }
+    // todo: replace with a beutifyl spinner
+    // if (loading) {
+    // return (
+    // <View className="flex-1 items-center justify-center">
+    //     <Text className="text-base text-foreground opacity-70">Loading puzzle...</Text>
+    // </View>
+    // );
+    // }
 
     if (!sudoku) {
         return (
