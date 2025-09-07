@@ -10,9 +10,6 @@ export function useServices() {
         const progressService = new ProgressService(userDb);
         const puzzleService = new PuzzleService(puzzlesDb, progressService);
         
-        // Pass puzzle service to progress service for difficulty filtering
-        progressService.setPuzzleService(puzzleService);
-        
         return {
             puzzleService,
             progressService

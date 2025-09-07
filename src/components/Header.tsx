@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Settings from './Settings';
-import { Difficulty } from '../types';
 
-interface HeaderProps {
-  onDifficultyChange?: (newDifficulty: Difficulty) => void;
-}
-
-export default function Header({ onDifficultyChange }: HeaderProps) {
+export default function Header() {
   const [settingsVisible, setSettingsVisible] = useState(false);
 
   return (
@@ -25,7 +20,6 @@ export default function Header({ onDifficultyChange }: HeaderProps) {
       <Settings 
         visible={settingsVisible} 
         onClose={() => setSettingsVisible(false)}
-        onDifficultyChange={onDifficultyChange}
       />
     </>
   );

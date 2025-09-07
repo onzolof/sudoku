@@ -48,8 +48,7 @@ function UserDbInner({children}: { children: ReactNode }) {
             try {
                 // Check if table exists
                 const tableExists = await db.getAllAsync("SELECT name FROM sqlite_master WHERE type='table' AND name='progress';");
-                console.debug('Table check result:', tableExists.length > 0 ? 'exists' : 'does not exist');
-                
+
                 if (tableExists.length === 0) {
                     // Create new table with proper schema
                     console.debug('Creating progress table...');

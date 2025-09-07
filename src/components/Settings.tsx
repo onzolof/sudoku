@@ -1,15 +1,13 @@
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {View, Text, TouchableOpacity, Modal, ScrollView, StatusBar} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Ionicons} from '@expo/vector-icons';
 import {Difficulty} from '../types';
-import {SUDOKU_DIFFICULTY_STORAGE_KEY} from '../constants';
-import {defaultDifficulty, difficulties} from "../utils";
+import {difficulties} from "../utils";
+import {useDifficulty} from '../provider';
 
 interface SettingsProps {
     visible: boolean;
     onClose: () => void;
-    onDifficultyChange?: (newDifficulty: Difficulty) => void;
 }
 
 const difficultyIcons: Record<Difficulty, keyof typeof Ionicons.glyphMap> = {
@@ -28,38 +26,8 @@ const difficultyColors: Record<Difficulty, string> = {
     insane: '#171717', // HSL(0, 0%, 9%)
 };
 
-// todo: cleaning up styles and properly using primary color
-export default function Settings({visible, onClose, onDifficultyChange}: SettingsProps) {
-    const [difficulty, setDifficulty] = useState<Difficulty>(defaultDifficulty);
-
-    useEffect(() => {
-        loadDifficulty();
-    }, []);
-
-    const loadDifficulty = async () => {
-        try {
-            const savedDifficulty = await AsyncStorage.getItem(SUDOKU_DIFFICULTY_STORAGE_KEY);
-            if (savedDifficulty && difficulties.includes(savedDifficulty as Difficulty)) {
-                setDifficulty(savedDifficulty as Difficulty);
-            }
-        } catch (error) {
-            console.error('Failed to load difficulty:', error);
-        }
-    };
-
-    const handleDifficultyChange = async (newDifficulty: Difficulty) => {
-        try {
-            setDifficulty(newDifficulty);
-            await AsyncStorage.setItem(SUDOKU_DIFFICULTY_STORAGE_KEY, newDifficulty);
-            
-            // Notify parent component about difficulty change
-            if (onDifficultyChange) {
-                onDifficultyChange(newDifficulty);
-            }
-        } catch (error) {
-            console.error('Failed to save difficulty:', error);
-        }
-    };
+export default function Settings({visible, onClose}: SettingsProps) {
+    const {difficulty, setDifficulty} = useDifficulty();
 
     return (
         <Modal
@@ -70,15 +38,14 @@ export default function Settings({visible, onClose, onDifficultyChange}: Setting
         >
             <StatusBar/>
             <View className="flex-1" style={{backgroundColor: '#F8FAFC'}}>
-                {/* Header with gradient background */}
-                <View 
+                <View
                     className="px-6 pt-12 pb-6"
                     style={{
                         backgroundColor: '#FFFFFF',
                         borderBottomLeftRadius: 24,
                         borderBottomRightRadius: 24,
                         shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
+                        shadowOffset: {width: 0, height: 2},
                         shadowOpacity: 0.1,
                         shadowRadius: 8,
                         elevation: 8,
@@ -86,11 +53,11 @@ export default function Settings({visible, onClose, onDifficultyChange}: Setting
                 >
                     <View className="flex-row items-center justify-between">
                         <View className="flex-row items-center">
-                            <View 
+                            <View
                                 className="w-10 h-10 rounded-full items-center justify-center mr-3"
                                 style={{backgroundColor: '#3B82F6'}}
                             >
-                                <Ionicons name="settings" size={20} color="#FFFFFF" />
+                                <Ionicons name="settings" size={20} color="#FFFFFF"/>
                             </View>
                             <Text className="text-2xl font-bold" style={{color: '#1E293B'}}>
                                 Settings
@@ -101,19 +68,19 @@ export default function Settings({visible, onClose, onDifficultyChange}: Setting
                             className="w-10 h-10 rounded-full items-center justify-center"
                             style={{backgroundColor: '#F1F5F9'}}
                         >
-                            <Ionicons name="close" size={20} color="#64748B" />
+                            <Ionicons name="close" size={20} color="#64748B"/>
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 <ScrollView className="flex-1 px-6 py-6" showsVerticalScrollIndicator={false}>
                     {/* Difficulty Selection Card */}
-                    <View 
+                    <View
                         className="rounded-2xl p-6 mb-6"
                         style={{
                             backgroundColor: '#FFFFFF',
                             shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 4 },
+                            shadowOffset: {width: 0, height: 4},
                             shadowOpacity: 0.08,
                             shadowRadius: 12,
                             elevation: 8,
@@ -124,7 +91,7 @@ export default function Settings({visible, onClose, onDifficultyChange}: Setting
                                 Difficulty Level
                             </Text>
                         </View>
-                        
+
                         <Text className="text-sm mb-6" style={{color: '#64748B', lineHeight: 20}}>
                             Choose your preferred difficulty level for the Sudokus.
                         </Text>
@@ -136,22 +103,22 @@ export default function Settings({visible, onClose, onDifficultyChange}: Setting
                                 const color = difficultyColors[diff];
 
                                 return (
-                                    <View key={diff} style={{ marginBottom: index < difficulties.length - 1 ? 12 : 0 }}>
+                                    <View key={diff} style={{marginBottom: index < difficulties.length - 1 ? 12 : 0}}>
                                         <TouchableOpacity
-                                            onPress={() => handleDifficultyChange(diff)}
+                                            onPress={() => setDifficulty(diff)}
                                             className="flex-row items-center px-4 py-4 rounded-xl"
                                             style={{
                                                 backgroundColor: isSelected ? color : '#F8FAFC',
                                                 borderWidth: isSelected ? 0 : 1,
                                                 borderColor: '#E2E8F0',
                                                 shadowColor: isSelected ? color : 'transparent',
-                                                shadowOffset: { width: 0, height: isSelected ? 4 : 0 },
+                                                shadowOffset: {width: 0, height: isSelected ? 4 : 0},
                                                 shadowOpacity: isSelected ? 0.3 : 0,
                                                 shadowRadius: isSelected ? 8 : 0,
                                                 elevation: isSelected ? 4 : 0,
                                             }}
                                         >
-                                            <View 
+                                            <View
                                                 className="w-10 h-10 rounded-full items-center justify-center mr-4"
                                                 style={{
                                                     backgroundColor: isSelected ? '#FFFFFF' : color,
@@ -178,11 +145,11 @@ export default function Settings({visible, onClose, onDifficultyChange}: Setting
                                                 </Text>
                                             </View>
                                             {isSelected && (
-                                                <View 
+                                                <View
                                                     className="w-6 h-6 rounded-full items-center justify-center"
                                                     style={{backgroundColor: '#FFFFFF'}}
                                                 >
-                                                    <Ionicons name="checkmark" size={16} color={color} />
+                                                    <Ionicons name="checkmark" size={16} color={color}/>
                                                 </View>
                                             )}
                                         </TouchableOpacity>

@@ -51,19 +51,6 @@ export class PuzzleService {
         }
     }
 
-    async getPuzzleIdsByDifficulty(difficulty: Difficulty): Promise<string[]> {
-        try {
-            const puzzles = await this.puzzlesDb.getAllAsync(
-                'SELECT id FROM puzzle WHERE difficulty = ?;',
-                [difficulty]
-            ) as { id: string }[];
-            return puzzles.map(p => p.id);
-        } catch (error) {
-            console.error('Failed to get puzzle IDs by difficulty:', error);
-            return [];
-        }
-    }
-
     async createNewSudoku(difficulty?: Difficulty): Promise<number | null> {
         try {
             const puzzleId = await this.findRandomPuzzleId(difficulty);
