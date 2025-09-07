@@ -1,3 +1,5 @@
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert' | 'insane';
+
 export interface PuzzleProgress {
     id: number;
     puzzleId: string;
