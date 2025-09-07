@@ -7,7 +7,7 @@ import Sudoku from './Sudoku';
 import {CURRENT_PROGRESS_ID_STORAGE_KEY} from "../constants";
 
 export default function Content() {
-    const {puzzleService, progressService, gameService} = useServices();
+    const {puzzleService, progressService} = useServices();
     const isUserDbReady = useUserDbReady();
 
     const [currentProgressId, setCurrentProgressId] = useState<number | null>(null);
@@ -89,24 +89,21 @@ export default function Content() {
         }
 
         try {
-            const newSudoku = await puzzleService.findRandomPuzzleId([], [20, 40, 80, 160]);
-            if (!newSudoku) {
-                console.error('No random puzzle available');
+            const newSudokuId = await puzzleService.createNewSudoku();
+            if (!newSudokuId) {
+                console.error('Failed to create new Sudoku');
                 return false;
-            }
-
-            const progressId = await gameService.createNewGame(newSudoku);
-            if (progressId) {
-                setCurrentProgressId(progressId);
-                await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, progressId.toString());
-                await loadPuzzleDifficulty(progressId);
+            } else {
+                setCurrentProgressId(newSudokuId);
+                await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, newSudokuId.toString());
+                await loadPuzzleDifficulty(newSudokuId);
             }
             return true;
         } catch (error) {
             console.error('Failed to create new random puzzle:', error);
             return false;
         }
-    }, [puzzleService, gameService, isUserDbReady]);
+    }, [puzzleService, progressService, isUserDbReady]);
 
     const navigateToNext = useCallback(async () => {
         if (isNavigating) return;
@@ -215,7 +212,7 @@ export default function Content() {
             {/* Header with navigation buttons */}
             <View className="flex-row justify-between items-center px-4 py-2">
                 <Text className="text-lg font-semibold text-black">
-                    {currentPuzzleDifficulty ? currentPuzzleDifficulty.toUpperCase() : 'PUZZLE'} ({currentProgressId})
+                    {currentPuzzleDifficulty ? currentPuzzleDifficulty.toUpperCase() : ''} ({currentProgressId})
                 </Text>
 
                 <View className="flex-row gap-2">

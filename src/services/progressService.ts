@@ -3,18 +3,6 @@ import { ProgressSchema, PuzzleProgress } from '../types';
 export class ProgressService {
     constructor(private userDb: any) {}
 
-    async loadProgressRecords(): Promise<PuzzleProgress[]> {
-        try {
-            const records = await this.userDb.getAllAsync(
-                'SELECT id, puzzleId, puzzle, moves, notes, solved FROM progress ORDER BY id ASC;'
-            ) as PuzzleProgress[];
-            return records;
-        } catch (error) {
-            console.error('Failed to load progress records:', error);
-            return [];
-        }
-    }
-
     async createProgressRecord(puzzleId: string, puzzleSeed: string): Promise<number> {
         try {
             const result = await this.userDb.runAsync(
@@ -27,6 +15,7 @@ export class ProgressService {
             throw error;
         }
     }
+
 
     async getProgressRecordById(id: number): Promise<ProgressSchema | null> {
         try {

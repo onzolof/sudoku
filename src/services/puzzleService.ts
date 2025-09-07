@@ -1,23 +1,15 @@
-import { PuzzleSchema } from '../types';
+import {PuzzleSchema} from '../types';
 
 export class PuzzleService {
-    constructor(private puzzlesDb: any) {}
+    constructor(private puzzlesDb: any, private progressService: any) {}
 
-    async findRandomPuzzleId(excludeIds: string[], batchSizes: number[]): Promise<string | null> {
+    async findRandomPuzzleId(): Promise<string | null> {
         try {
-            for (const batchSize of batchSizes) {
-                const randomPuzzles = await this.puzzlesDb.getAllAsync(
-                    'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT ?;',
-                    [batchSize]
-                ) as { id: string }[];
+            const randomPuzzle = await this.puzzlesDb.getFirstAsync(
+                'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT 1;'
+            ) as { id: string } | null;
 
-                const availablePuzzles = randomPuzzles.filter(p => !excludeIds.includes(p.id));
-
-                if (availablePuzzles.length > 0) {
-                    return availablePuzzles[0].id;
-                }
-            }
-            return null;
+            return randomPuzzle?.id || null;
         } catch (error) {
             console.error('Failed to find random puzzle ID:', error);
             return null;
@@ -40,14 +32,33 @@ export class PuzzleService {
 
     async getPuzzleById(puzzleId: string): Promise<PuzzleSchema | null> {
         try {
-            const puzzle = await this.puzzlesDb.getFirstAsync(
+            return await this.puzzlesDb.getFirstAsync(
                 'SELECT * FROM puzzle WHERE id = ? LIMIT 1;',
                 [puzzleId]
             ) as PuzzleSchema | null;
-
-            return puzzle;
         } catch (error) {
             console.error('Failed to get puzzle by ID:', error);
+            return null;
+        }
+    }
+
+    async createNewSudoku(): Promise<number | null> {
+        try {
+            const puzzleId = await this.findRandomPuzzleId();
+            if (!puzzleId) {
+                console.error('No random puzzle available');
+                return null;
+            }
+
+            const puzzleSeed = await this.getPuzzleSeed(puzzleId);
+            if (!puzzleSeed) {
+                console.error('Puzzle seed not found');
+                return null;
+            }
+
+            return await this.progressService.createProgressRecord(puzzleId, puzzleSeed);
+        } catch (error) {
+            console.error('Failed to create new Sudoku:', error);
             return null;
         }
     }

@@ -1,20 +1,18 @@
 import { useMemo } from 'react';
 import { usePuzzlesDb, useUserDb } from '../db/dbProviders';
-import { PuzzleService, ProgressService, GameService } from '../services';
+import { PuzzleService, ProgressService } from '../services';
 
 export function useServices() {
     const puzzlesDb = usePuzzlesDb();
     const userDb = useUserDb();
     
     const services = useMemo(() => {
-        const puzzleService = new PuzzleService(puzzlesDb);
         const progressService = new ProgressService(userDb);
-        const gameService = new GameService(puzzleService, progressService);
+        const puzzleService = new PuzzleService(puzzlesDb, progressService);
         
         return {
             puzzleService,
-            progressService,
-            gameService
+            progressService
         };
     }, [puzzlesDb, userDb]);
     
