@@ -21,7 +21,7 @@ export default function Content() {
     const checkNavigationAvailability = useCallback(async () => {
         if (!isUserDbReady || !currentProgressId) {
             setCanGoLeft(false);
-            setCanGoRight(false);
+            setCanGoRight(true); // Always enable right button
             return;
         }
 
@@ -32,11 +32,11 @@ export default function Content() {
             ]);
 
             setCanGoLeft(currentOffset > 0);
-            setCanGoRight(currentOffset < totalCount - 1);
+            setCanGoRight(true); // Always enable right button - will create new puzzle if needed
         } catch (error) {
             console.error('Failed to check navigation availability:', error);
             setCanGoLeft(false);
-            setCanGoRight(false);
+            setCanGoRight(true); // Always enable right button
         }
     }, [progressService, isUserDbReady, currentProgressId]);
 
@@ -60,26 +60,6 @@ export default function Content() {
             setIsNavigating(false);
         }
     }, [canGoLeft, isNavigating, currentProgressId, progressService]);
-
-    const navigateToNext = useCallback(async () => {
-        if (!canGoRight || isNavigating || !currentProgressId) return;
-
-        setIsNavigating(true);
-        try {
-            const currentOffset = await progressService.getProgressRecordOffset(currentProgressId);
-            const nextRecords = await progressService.getProgressRecordsPaginated(currentOffset + 1, 1);
-            
-            if (nextRecords.length > 0) {
-                const nextId = nextRecords[0].id;
-                setCurrentProgressId(nextId);
-                await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, nextId.toString());
-            }
-        } catch (error) {
-            console.error('Failed to navigate to next puzzle:', error);
-        } finally {
-            setIsNavigating(false);
-        }
-    }, [canGoRight, isNavigating, currentProgressId, progressService]);
 
     const createNewRandomPuzzle = useCallback(async () => {
         if (!isUserDbReady) {
@@ -105,6 +85,40 @@ export default function Content() {
             return false;
         }
     }, [puzzleService, gameService, isUserDbReady]);
+
+    const navigateToNext = useCallback(async () => {
+        if (isNavigating) return;
+
+        setIsNavigating(true);
+        try {
+            if (!currentProgressId) {
+                // No current puzzle, create a new one
+                await createNewRandomPuzzle();
+                return;
+            }
+
+            const currentOffset = await progressService.getProgressRecordOffset(currentProgressId);
+            const totalCount = await progressService.getTotalProgressCount();
+            
+            if (currentOffset < totalCount - 1) {
+                // There are more records, load the next one
+                const nextRecords = await progressService.getProgressRecordsPaginated(currentOffset + 1, 1);
+                
+                if (nextRecords.length > 0) {
+                    const nextId = nextRecords[0].id;
+                    setCurrentProgressId(nextId);
+                    await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, nextId.toString());
+                }
+            } else {
+                // No more records, create a new puzzle
+                await createNewRandomPuzzle();
+            }
+        } catch (error) {
+            console.error('Failed to navigate to next puzzle:', error);
+        } finally {
+            setIsNavigating(false);
+        }
+    }, [isNavigating, currentProgressId, progressService, createNewRandomPuzzle]);
 
     const restoreFromSavedProgress = useCallback(async () => {
         if (!isUserDbReady) {
@@ -179,18 +193,11 @@ export default function Content() {
 
     return (
         <View className="flex">
-            {/* Header with new puzzle button */}
-            <View className="flex-row justify-between items-center px-4 py-2">
-                <TouchableOpacity
-                    onPress={createNewRandomPuzzle}
-                    className="w-12 h-12 bg-blue-500 rounded-full items-center justify-center"
-                >
-                    <Text className="text-white text-2xl font-bold">+</Text>
-                </TouchableOpacity>
+            {/* Header */}
+            <View className="flex-row justify-center items-center px-4 py-2">
                 <Text className="text-lg font-semibold text-black">
                     Puzzle {currentProgressId}
                 </Text>
-                <View className="w-12" />
             </View>
 
             {/* Main content area */}
@@ -225,9 +232,9 @@ export default function Content() {
 
                 <TouchableOpacity
                     onPress={navigateToNext}
-                    disabled={!canGoRight || isNavigating}
+                    disabled={isNavigating}
                     className={`w-16 h-16 rounded-full items-center justify-center ${
-                        canGoRight && !isNavigating ? 'bg-gray-600' : 'bg-gray-300'
+                        !isNavigating ? 'bg-gray-600' : 'bg-gray-300'
                     }`}
                 >
                     <Text className="text-white text-2xl font-bold">→</Text>
