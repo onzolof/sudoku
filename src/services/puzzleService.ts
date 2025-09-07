@@ -1,13 +1,22 @@
 import {PuzzleSchema} from '../types';
+import {type Difficulty} from '../utils';
 
 export class PuzzleService {
     constructor(private puzzlesDb: any, private progressService: any) {}
 
-    async findRandomPuzzleId(): Promise<string | null> {
+    async findRandomPuzzleId(difficulty?: Difficulty): Promise<string | null> {
         try {
-            const randomPuzzle = await this.puzzlesDb.getFirstAsync(
-                'SELECT id FROM puzzle ORDER BY RANDOM() LIMIT 1;'
-            ) as { id: string } | null;
+            let query = 'SELECT id FROM puzzle';
+            let params: any[] = [];
+
+            if (difficulty) {
+                query += ' WHERE difficulty = ?';
+                params.push(difficulty);
+            }
+
+            query += ' ORDER BY RANDOM() LIMIT 1;';
+
+            const randomPuzzle = await this.puzzlesDb.getFirstAsync(query, params) as { id: string } | null;
 
             return randomPuzzle?.id || null;
         } catch (error) {
@@ -42,9 +51,22 @@ export class PuzzleService {
         }
     }
 
-    async createNewSudoku(): Promise<number | null> {
+    async getPuzzleIdsByDifficulty(difficulty: Difficulty): Promise<string[]> {
         try {
-            const puzzleId = await this.findRandomPuzzleId();
+            const puzzles = await this.puzzlesDb.getAllAsync(
+                'SELECT id FROM puzzle WHERE difficulty = ?;',
+                [difficulty]
+            ) as { id: string }[];
+            return puzzles.map(p => p.id);
+        } catch (error) {
+            console.error('Failed to get puzzle IDs by difficulty:', error);
+            return [];
+        }
+    }
+
+    async createNewSudoku(difficulty?: Difficulty): Promise<number | null> {
+        try {
+            const puzzleId = await this.findRandomPuzzleId(difficulty);
             if (!puzzleId) {
                 console.error('No random puzzle available');
                 return null;

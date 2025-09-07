@@ -4,11 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Ionicons} from '@expo/vector-icons';
 import {Difficulty} from '../types';
 import {SUDOKU_DIFFICULTY_STORAGE_KEY} from '../constants';
-import {difficulties} from "../utils";
+import {defaultDifficulty, difficulties} from "../utils";
 
 interface SettingsProps {
     visible: boolean;
     onClose: () => void;
+    onDifficultyChange?: (newDifficulty: Difficulty) => void;
 }
 
 const difficultyIcons: Record<Difficulty, keyof typeof Ionicons.glyphMap> = {
@@ -28,8 +29,8 @@ const difficultyColors: Record<Difficulty, string> = {
 };
 
 // todo: cleaning up styles and properly using primary color
-export default function Settings({visible, onClose}: SettingsProps) {
-    const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+export default function Settings({visible, onClose, onDifficultyChange}: SettingsProps) {
+    const [difficulty, setDifficulty] = useState<Difficulty>(defaultDifficulty);
 
     useEffect(() => {
         loadDifficulty();
@@ -50,6 +51,11 @@ export default function Settings({visible, onClose}: SettingsProps) {
         try {
             setDifficulty(newDifficulty);
             await AsyncStorage.setItem(SUDOKU_DIFFICULTY_STORAGE_KEY, newDifficulty);
+            
+            // Notify parent component about difficulty change
+            if (onDifficultyChange) {
+                onDifficultyChange(newDifficulty);
+            }
         } catch (error) {
             console.error('Failed to save difficulty:', error);
         }

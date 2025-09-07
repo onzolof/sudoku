@@ -1,7 +1,12 @@
 import { ProgressSchema, PuzzleProgress } from '../types';
+import { type Difficulty } from '../utils';
 
 export class ProgressService {
-    constructor(private userDb: any) {}
+    constructor(private userDb: any, private puzzleService?: any) {}
+
+    setPuzzleService(puzzleService: any) {
+        this.puzzleService = puzzleService;
+    }
 
     async createProgressRecord(puzzleId: string, puzzleSeed: string): Promise<number> {
         try {
@@ -29,12 +34,34 @@ export class ProgressService {
         }
     }
 
-    async getProgressRecordsPaginated(offset: number, limit: number): Promise<PuzzleProgress[]> {
+    async getProgressRecordsPaginated(offset: number, limit: number, difficulty?: Difficulty): Promise<PuzzleProgress[]> {
         try {
-            const records = await this.userDb.getAllAsync(
-                'SELECT id, puzzleId, puzzle, moves, notes, solved FROM progress ORDER BY id ASC LIMIT ? OFFSET ?;',
-                [limit, offset]
-            ) as PuzzleProgress[];
+            if (!difficulty || !this.puzzleService) {
+                // Fallback to original behavior if no difficulty filter or puzzle service
+                const records = await this.userDb.getAllAsync(
+                    'SELECT id, puzzleId, puzzle, moves, notes, solved FROM progress ORDER BY id ASC LIMIT ? OFFSET ?;',
+                    [limit, offset]
+                ) as PuzzleProgress[];
+                return records;
+            }
+
+            // Get puzzle IDs for the specified difficulty
+            const puzzleIds = await this.puzzleService.getPuzzleIdsByDifficulty(difficulty);
+            if (puzzleIds.length === 0) {
+                return [];
+            }
+
+            // Create placeholders for the IN clause
+            const placeholders = puzzleIds.map(() => '?').join(',');
+            const query = `
+                SELECT id, puzzleId, puzzle, moves, notes, solved 
+                FROM progress 
+                WHERE puzzleId IN (${placeholders})
+                ORDER BY id ASC 
+                LIMIT ? OFFSET ?
+            `;
+
+            const records = await this.userDb.getAllAsync(query, [...puzzleIds, limit, offset]) as PuzzleProgress[];
             return records;
         } catch (error) {
             console.error('Failed to load paginated progress records:', error);
@@ -42,11 +69,25 @@ export class ProgressService {
         }
     }
 
-    async getTotalProgressCount(): Promise<number> {
+    async getTotalProgressCount(difficulty?: Difficulty): Promise<number> {
         try {
-            const result = await this.userDb.getFirstAsync(
-                'SELECT COUNT(*) as count FROM progress;'
-            ) as { count: number };
+            if (!difficulty || !this.puzzleService) {
+                // Fallback to original behavior if no difficulty filter or puzzle service
+                const result = await this.userDb.getFirstAsync('SELECT COUNT(*) as count FROM progress;') as { count: number };
+                return result.count;
+            }
+
+            // Get puzzle IDs for the specified difficulty
+            const puzzleIds = await this.puzzleService.getPuzzleIdsByDifficulty(difficulty);
+            if (puzzleIds.length === 0) {
+                return 0;
+            }
+
+            // Create placeholders for the IN clause
+            const placeholders = puzzleIds.map(() => '?').join(',');
+            const query = `SELECT COUNT(*) as count FROM progress WHERE puzzleId IN (${placeholders})`;
+
+            const result = await this.userDb.getFirstAsync(query, puzzleIds) as { count: number };
             return result.count;
         } catch (error) {
             console.error('Failed to get total progress count:', error);
@@ -54,12 +95,25 @@ export class ProgressService {
         }
     }
 
-    async getProgressRecordOffset(progressId: number): Promise<number> {
+    async getProgressRecordOffset(progressId: number, difficulty?: Difficulty): Promise<number> {
         try {
-            const result = await this.userDb.getFirstAsync(
-                'SELECT COUNT(*) as offset FROM progress WHERE id <= ?;',
-                [progressId]
-            ) as { offset: number };
+            if (!difficulty || !this.puzzleService) {
+                // Fallback to original behavior if no difficulty filter or puzzle service
+                const result = await this.userDb.getFirstAsync('SELECT COUNT(*) as offset FROM progress WHERE id <= ?;', [progressId]) as { offset: number };
+                return Math.max(0, result.offset - 1); // Convert to 0-based offset
+            }
+
+            // Get puzzle IDs for the specified difficulty
+            const puzzleIds = await this.puzzleService.getPuzzleIdsByDifficulty(difficulty);
+            if (puzzleIds.length === 0) {
+                return 0;
+            }
+
+            // Create placeholders for the IN clause
+            const placeholders = puzzleIds.map(() => '?').join(',');
+            const query = `SELECT COUNT(*) as offset FROM progress WHERE puzzleId IN (${placeholders}) AND id <= ?`;
+
+            const result = await this.userDb.getFirstAsync(query, [...puzzleIds, progressId]) as { offset: number };
             return Math.max(0, result.offset - 1); // Convert to 0-based offset
         } catch (error) {
             console.error('Failed to get progress record offset:', error);
