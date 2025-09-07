@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {memo, useEffect, useState} from 'react';
 import {View, Text} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
@@ -7,7 +7,7 @@ type SudokuProps = {
     progressId: number;
 };
 
-export default function Sudoku({progressId}: SudokuProps) {
+function Sudoku({progressId}: SudokuProps) {
     const {progressService} = useServices();
     const [loading, setLoading] = useState(true);
     const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
@@ -83,3 +83,5 @@ export default function Sudoku({progressId}: SudokuProps) {
         </View>
     )
 }
+
+export default memo(Sudoku);
