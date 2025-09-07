@@ -14,7 +14,6 @@ export default function Content() {
     const [loading, setLoading] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
     const [canGoLeft, setCanGoLeft] = useState(false);
-    const [canGoRight, setCanGoRight] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const [currentPuzzleDifficulty, setCurrentPuzzleDifficulty] = useState<string | null>(null);
 
@@ -22,22 +21,18 @@ export default function Content() {
     const checkNavigationAvailability = useCallback(async () => {
         if (!isUserDbReady || !currentProgressId) {
             setCanGoLeft(false);
-            setCanGoRight(true); // Always enable right button
             return;
         }
 
         try {
-            const [totalCount, currentOffset] = await Promise.all([
-                progressService.getTotalProgressCount(),
+            const [currentOffset] = await Promise.all([
                 progressService.getProgressRecordOffset(currentProgressId)
             ]);
 
             setCanGoLeft(currentOffset > 0);
-            setCanGoRight(true); // Always enable right button - will create new puzzle if needed
         } catch (error) {
             console.error('Failed to check navigation availability:', error);
             setCanGoLeft(false);
-            setCanGoRight(true); // Always enable right button
         }
     }, [progressService, isUserDbReady, currentProgressId]);
 
@@ -208,7 +203,7 @@ export default function Content() {
         return (
             <View className="flex-1 items-center justify-center">
                 <Text className="text-base text-gray-600">
-                    {loading ? 'Loading sudoku...' : 'Initializing database...'}
+                    {loading ? 'Loading Sudoku...' : 'Initializing database...'}
                 </Text>
             </View>
         );
