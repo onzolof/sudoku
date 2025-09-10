@@ -65,7 +65,15 @@ export class PuzzleService {
                 return null;
             }
 
-            return await this.progressService.createProgressRecord(puzzleId, puzzleSeed);
+            const puzzle = await this.getPuzzleById(puzzleId);
+            if (!puzzle) {
+                console.error('Puzzle not found');
+                return null;
+            }
+
+            console.debug('Creating new random puzzle');
+
+            return await this.progressService.createProgressRecord(puzzleId, puzzleSeed, puzzle.difficulty);
         } catch (error) {
             console.error('Failed to create new Sudoku:', error);
             return null;

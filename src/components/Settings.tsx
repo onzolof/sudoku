@@ -5,6 +5,7 @@ import {Difficulty} from '../types';
 import {difficulties} from "../utils";
 import {useDifficulty} from '../provider';
 
+// todo: extracting primary color / theming logic from settings component to utils
 interface SettingsProps {
     visible: boolean;
     onClose: () => void;

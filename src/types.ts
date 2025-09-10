@@ -24,6 +24,7 @@ export interface ProgressSchema {
     id: number;
     puzzleId: string;
     puzzle: string;          // the original starting point of the sudoku
+    difficulty: string;      // difficulty level
     moves: string | null;    // stored as JSON TEXT
     notes: string | null;    // stored as JSON TEXT
     solved: number;          // 0/1 in DB

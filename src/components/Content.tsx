@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
+import {Text, TouchableOpacity, View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
 import {useDifficulty} from '../provider';
@@ -9,19 +9,17 @@ import {CURRENT_PROGRESS_ID_STORAGE_KEY, type ProgressStorage} from "../constant
 import {type Difficulty} from '../utils';
 
 
-// todo:
-// 1. proper testing of changing difficulty
-// 2. cleaning up
-// 3. re-adding back button
-// 4. extracting primary color / theming logic from settings component to utils
-
 export default function Content() {
     const {puzzleService, progressService} = useServices();
     const isUserDbReady = useUserDbReady();
     const {difficulty} = useDifficulty();
 
-    const [currentProgressId, setCurrentProgressId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
+    const [navigationData, setNavigationData] = useState<{
+        previous: number | null;
+        current: number | null;
+        next: number | null;
+    }>({previous: null, current: null, next: null});
 
     const loadProgressStorage = async (): Promise<ProgressStorage> => {
         try {
@@ -35,27 +33,13 @@ export default function Content() {
         return {};
     };
 
-    const saveProgressForDifficulty = async (difficulty: Difficulty, progressId: number | null) => {
+    const saveProgress = async (progressId: number | null) => {
         try {
             const currentStorage = await loadProgressStorage();
             currentStorage[difficulty] = progressId;
             await AsyncStorage.setItem(CURRENT_PROGRESS_ID_STORAGE_KEY, JSON.stringify(currentStorage));
         } catch (error) {
             console.error('Failed to save progress for difficulty:', error);
-        }
-    };
-
-
-    const loadPuzzleDifficulty = async (progressId: number) => {
-        if (!isUserDbReady) return;
-
-        try {
-            const progressRecord = await progressService.getProgressRecordById(progressId);
-            if (progressRecord) {
-                const puzzle = await puzzleService.getPuzzleById(progressRecord.puzzleId);
-            }
-        } catch (error) {
-            console.error('Failed to load puzzle difficulty:', error);
         }
     };
 
@@ -71,9 +55,7 @@ export default function Content() {
                 console.error('Failed to create new Sudoku');
                 return false;
             } else {
-                setCurrentProgressId(newSudokuId);
-                await saveProgressForDifficulty(difficulty, newSudokuId);
-                await loadPuzzleDifficulty(newSudokuId);
+                await loadNavigationData(newSudokuId);
             }
             return true;
         } catch (error) {
@@ -89,23 +71,58 @@ export default function Content() {
         }
 
         const progressStorage = await loadProgressStorage();
-        const currentId = progressStorage[difficulty];
+        return progressStorage[difficulty];
+    };
 
-        if (!currentId) return null;
+    const loadNavigationData = async (progressIdToLoad: number) => {
+        if (!isUserDbReady) return;
 
-        // Check if the progress record exists in the database
-        const progressRecord = await progressService.getProgressRecordById(currentId);
-        if (!progressRecord) {
-            // Remove invalid progress ID from storage
-            await saveProgressForDifficulty(difficulty, null);
-            return null;
+        try {
+            const navData = await progressService.getProgressNavigation(progressIdToLoad, difficulty);
+
+            // If no current record found, the progress ID is invalid
+            if (!navData.current) {
+                console.error(`Progress record ${progressIdToLoad} not found`);
+                return;
+            }
+
+            const newNavigationState = {
+                previous: navData.previous?.id || null,
+                current: navData.current?.id || null,
+                next: navData.next?.id || null,
+            };
+            setNavigationData(newNavigationState);
+            await saveProgress(newNavigationState.current)
+            console.debug('Navigation Data: ', newNavigationState)
+        } catch (error) {
+            console.error('Failed to load navigation data:', error);
         }
-
-        return currentId;
     };
 
     const loadNextPuzzle = async () => {
-        await createNewRandomPuzzle();
+        if (!isUserDbReady) return;
+
+        try {
+            // If we have a next progress record, load it
+            if (navigationData.next) {
+                await loadNavigationData(navigationData.next);
+            } else {
+                // No next record exists, create a new one
+                await createNewRandomPuzzle();
+            }
+        } catch (error) {
+            console.error('Failed to load next puzzle:', error);
+        }
+    };
+
+    const loadPreviousPuzzle = async () => {
+        if (!isUserDbReady || !navigationData.previous) return;
+
+        try {
+            await loadNavigationData(navigationData.previous);
+        } catch (error) {
+            console.error('Failed to load previous puzzle:', error);
+        }
     };
 
     const initializeApp = async () => {
@@ -115,11 +132,9 @@ export default function Content() {
         try {
             const savedProgressId = await restoreFromSavedProgress(difficulty);
             if (savedProgressId) {
-                setCurrentProgressId(savedProgressId);
-                await loadPuzzleDifficulty(savedProgressId);
+                await loadNavigationData(savedProgressId);
                 console.debug('Restored from saved progress:', savedProgressId);
             } else {
-                console.debug('Creating new random puzzle');
                 await createNewRandomPuzzle();
             }
         } catch (error) {
@@ -150,13 +165,20 @@ export default function Content() {
     return (
         <View className="flex">
 
-            {/* Header with next puzzle button */}
+            {/* Header with navigation buttons */}
             <View className="flex-row justify-between items-center px-4 py-2">
                 <Text className="text-lg font-semibold text-black">
-                    {difficulty.toUpperCase() ?? ''} ({currentProgressId})
+                    {difficulty.toUpperCase() ?? ''} ({navigationData.current})
                 </Text>
 
-                {/*todo: button for loading Previous Puzzle*/}
+                {navigationData.previous && <TouchableOpacity
+                    onPress={loadPreviousPuzzle}
+
+                    className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
+                >
+                    <Text className="text-white text-xl font-bold">←</Text>
+                </TouchableOpacity>
+                }
                 <TouchableOpacity
                     onPress={loadNextPuzzle}
                     className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
@@ -167,8 +189,8 @@ export default function Content() {
 
             {/* Main content area */}
             <View className="flex items-center justify-center">
-                {currentProgressId ? (
-                    <Sudoku progressId={currentProgressId}/>
+                {navigationData.current ? (
+                    <Sudoku progressId={navigationData.current}/>
                 ) : (
                     <Text className="text-base text-gray-600">
                         No puzzle loaded

@@ -57,6 +57,7 @@ function UserDbInner({children}: { children: ReactNode }) {
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             puzzleId TEXT NOT NULL,
                             puzzle TEXT NOT NULL,
+                            difficulty TEXT NOT NULL,
                             moves TEXT,
                             notes TEXT,
                             solved INTEGER NOT NULL DEFAULT 0 CHECK (solved IN (0,1))
@@ -68,6 +69,7 @@ function UserDbInner({children}: { children: ReactNode }) {
                     await db.runAsync('CREATE INDEX idx_progress_id ON progress(id);');
                     await db.runAsync('CREATE INDEX idx_progress_puzzleId ON progress(puzzleId);');
                     await db.runAsync('CREATE INDEX idx_progress_solved ON progress(solved);');
+                    await db.runAsync('CREATE INDEX idx_progress_difficulty ON progress(difficulty);');
                     
                     console.log('Created new progress table with id column and indexes');
                 } else {
