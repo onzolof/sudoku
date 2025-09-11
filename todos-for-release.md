@@ -1,3 +1,4 @@
+- alle todos durchgehen
 - translate app
 - app icon / branding
 - splash screen
