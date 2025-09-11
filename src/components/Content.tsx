@@ -3,7 +3,7 @@ import {Text, TouchableOpacity, View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
 import {useDifficulty} from '../provider';
-import {useUserDbReady} from '../db/dbProviders';
+import {useUserDbReady} from '../provider/DbProviders';
 import Sudoku from './Sudoku';
 import {CURRENT_PROGRESS_ID_STORAGE_KEY, type ProgressStorage} from "../constants";
 import {type Difficulty} from '../utils';

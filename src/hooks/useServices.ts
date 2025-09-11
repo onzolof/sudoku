@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { usePuzzlesDb, useUserDb } from '../db/dbProviders';
+import { usePuzzlesDb, useUserDb } from '../provider/DbProviders';
 import { PuzzleService, ProgressService } from '../services';
 
 export function useServices() {

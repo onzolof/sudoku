@@ -2,10 +2,9 @@ import React from 'react';
 import {View, Text, TouchableOpacity, Modal, ScrollView, StatusBar} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {Difficulty} from '../types';
-import {difficulties} from "../utils";
+import {difficulties, getThemeColor} from "../utils";
 import {useDifficulty} from '../provider';
 
-// todo: extracting primary color / theming logic from settings component to utils
 interface SettingsProps {
     visible: boolean;
     onClose: () => void;
@@ -19,13 +18,6 @@ const difficultyIcons: Record<Difficulty, keyof typeof Ionicons.glyphMap> = {
     insane: 'skull',
 };
 
-const difficultyColors: Record<Difficulty, string> = {
-    easy: '#16A34A', // HSL(142.1, 76.2%, 36.3%)
-    medium: '#F97316', // HSL(24.6, 95%, 53.1%)
-    hard: '#CC0066', // HSL(346.8, 77.2%, 49.8%)
-    expert: '#8A2BE2', // HSL(262.1, 83.3%, 57.8%)
-    insane: '#171717', // HSL(0, 0%, 9%)
-};
 
 export default function Settings({visible, onClose}: SettingsProps) {
     const {difficulty, setDifficulty} = useDifficulty();
@@ -101,7 +93,7 @@ export default function Settings({visible, onClose}: SettingsProps) {
                             {difficulties.map((diff, index) => {
                                 const Icon = difficultyIcons[diff];
                                 const isSelected = diff === difficulty;
-                                const color = difficultyColors[diff];
+                                const color = getThemeColor(diff);
 
                                 return (
                                     <View key={diff} style={{marginBottom: index < difficulties.length - 1 ? 12 : 0}}>

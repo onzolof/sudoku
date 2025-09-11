@@ -1,6 +1,6 @@
 import './global.css'
 import {SafeAreaView} from 'react-native';
-import {PuzzlesDbProvider, UserDbProvider} from "./src/db/dbProviders";
+import {PuzzlesDbProvider, UserDbProvider} from "./src/provider/DbProviders";
 import Header from "./src/components/Header";
 import Content from "./src/components/Content";
 import {StrictMode} from "react";

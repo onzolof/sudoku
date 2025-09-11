@@ -1,0 +1,4 @@
+- translate app
+- app icon / branding
+- splash screen
+- mehr sudoku puzzles generieren
