@@ -165,9 +165,10 @@ export default function Content() {
     return (
         <View className="flex">
 
+            <Text className="font-bold text-primary">Test</Text>
             {/* Header with navigation buttons */}
             <View className="flex-row justify-between items-center px-4 py-2">
-                <Text className="text-lg font-semibold text-black">
+                <Text className="text-lg font-semibold text-primary ">
                     {difficulty.toUpperCase() ?? ''} ({navigationData.current})
                 </Text>
 
