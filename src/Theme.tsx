@@ -239,5 +239,5 @@ const THEMES: Record<ThemeName, Record<Scheme, ReturnType<typeof vars>>> = {
 export function Theme({name, ...props}: { name: ThemeName } & ViewProps) {
     const {colorScheme} = useColorScheme(); // "light" | "dark" (follows system)
     // noinspection TypeScriptValidateTypes
-    return <View style={THEMES[name][colorScheme]} {...props} />;
+    return <View style={[THEMES[name][colorScheme], {flex: 1}]} {...props} />;
 }

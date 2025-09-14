@@ -15,7 +15,7 @@ export default function App() {
                 <PuzzlesDbProvider>
                     <UserDbProvider>
                         <DifficultyProvider>
-                            <SafeAreaView>
+                            <SafeAreaView className="flex-1">
                                 <MainApp/>
                             </SafeAreaView>
                         </DifficultyProvider>

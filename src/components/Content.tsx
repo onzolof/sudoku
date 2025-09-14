@@ -163,30 +163,30 @@ export default function Content() {
     }
 
     return (
-        <View className="flex">
+        <View className="flex-1">
 
-            <View className="flex-row justify-between items-center px-4 py-2">
-                <Text className="text-lg font-semibold text-primary ">
+            <View className="flex-row justify-between items-center px-4 py-2 gap-4">
+                <Text className="flex-1 text-lg font-semibold text-primary ">
                     {difficulty.toUpperCase() ?? ''} ({navigationData.current})
                 </Text>
 
                 {navigationData.previous && <TouchableOpacity
                     onPress={loadPreviousPuzzle}
 
-                    className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
+                    className="w-12 h-12 rounded-full items-center justify-center bg-primary"
                 >
                     <Text className="text-white text-xl font-bold">←</Text>
                 </TouchableOpacity>
                 }
                 <TouchableOpacity
                     onPress={loadNextPuzzle}
-                    className="w-12 h-12 rounded-full items-center justify-center bg-gray-600"
+                    className="w-12 h-12 rounded-full items-center justify-center bg-primary"
                 >
                     <Text className="text-white text-xl font-bold">→</Text>
                 </TouchableOpacity>
             </View>
 
-            <View className="flex items-center justify-center">
+            <View className="flex-1 items-center justify-center">
                 {navigationData.current && <Sudoku progressId={navigationData.current}/>}
             </View>
         </View>
