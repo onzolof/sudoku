@@ -165,7 +165,6 @@ export default function Content() {
     return (
         <View className="flex">
 
-            {/* Header with navigation buttons */}
             <View className="flex-row justify-between items-center px-4 py-2">
                 <Text className="text-lg font-semibold text-primary ">
                     {difficulty.toUpperCase() ?? ''} ({navigationData.current})
@@ -187,15 +186,8 @@ export default function Content() {
                 </TouchableOpacity>
             </View>
 
-            {/* Main content area */}
             <View className="flex items-center justify-center">
-                {navigationData.current ? (
-                    <Sudoku progressId={navigationData.current}/>
-                ) : (
-                    <Text className="text-base text-gray-600">
-                        No puzzle loaded
-                    </Text>
-                )}
+                {navigationData.current && <Sudoku progressId={navigationData.current}/>}
             </View>
         </View>
     );
