@@ -6,6 +6,7 @@ import {StrictMode} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {DifficultyProvider, PuzzlesDbProvider, useDifficulty, UserDbProvider} from './src/provider';
 import {Theme} from "./src/Theme";
+import {Difficulty} from "./src/types";
 
 export default function App() {
     return (
@@ -28,9 +29,8 @@ export default function App() {
 function MainApp() {
     const {difficulty} = useDifficulty()
 
-    return (<Theme name={difficulty}>
+    return (<Theme name={difficulty as Difficulty}>
         <Header/>
-        <Text className="text-primary">testibus</Text>
         <Content/>
     </Theme>)
 }

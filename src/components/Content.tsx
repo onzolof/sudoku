@@ -3,7 +3,7 @@ import {Text, TouchableOpacity, View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useServices} from '../hooks';
 import {useDifficulty} from '../provider';
-import {useUserDbReady} from '../provider/DbProviders';
+import {useUserDbReady} from '../provider';
 import Sudoku from './Sudoku';
 import {CURRENT_PROGRESS_ID_STORAGE_KEY, type ProgressStorage} from "../constants";
 import {type Difficulty} from '../utils';
@@ -165,7 +165,6 @@ export default function Content() {
     return (
         <View className="flex">
 
-            <Text className="font-bold text-primary">Test</Text>
             {/* Header with navigation buttons */}
             <View className="flex-row justify-between items-center px-4 py-2">
                 <Text className="text-lg font-semibold text-primary ">
