@@ -1,11 +1,11 @@
 import './global.css'
-import {SafeAreaView} from 'react-native';
-import {PuzzlesDbProvider, UserDbProvider} from "./src/provider/DbProviders";
+import {SafeAreaView, Text} from 'react-native';
 import Header from "./src/components/Header";
 import Content from "./src/components/Content";
 import {StrictMode} from "react";
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {DifficultyProvider} from './src/provider';
+import {DifficultyProvider, PuzzlesDbProvider, useDifficulty, UserDbProvider} from './src/provider';
+import {Theme} from "./src/Theme";
 
 export default function App() {
     return (
@@ -15,8 +15,7 @@ export default function App() {
                     <UserDbProvider>
                         <DifficultyProvider>
                             <SafeAreaView>
-                                <Header/>
-                                <Content/>
+                                <MainApp/>
                             </SafeAreaView>
                         </DifficultyProvider>
                     </UserDbProvider>
@@ -26,3 +25,12 @@ export default function App() {
     );
 }
 
+function MainApp() {
+    const {difficulty} = useDifficulty()
+
+    return (<Theme name={difficulty}>
+        <Header/>
+        <Text className="text-primary">testibus</Text>
+        <Content/>
+    </Theme>)
+}
