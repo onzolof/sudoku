@@ -111,7 +111,8 @@ const Cell = memo(({}: CellProps) => {
             squircleParams={{
                 cornerSmoothing: 0.8,
                 cornerRadius: 4,
-                fillColor: 'grey',
+                // todo: use variable here
+                fillColor: '#f3f4f6',
             }}
         >
             <Text className="font-mono text-xl font-bold tracking-wider sudoku-number">3</Text>
