@@ -3,6 +3,7 @@ import {View, Text} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
 import {SquircleView} from "react-native-figma-squircle";
+import {useColorScheme} from "nativewind";
 
 type SudokuProps = {
     progressId: number;
@@ -58,68 +59,102 @@ function Sudoku({progressId}: SudokuProps) {
 
     return (
         <View className="w-full p-6">
-            <Row/>
-            <Row/>
-            <Row/>
+            <Row rowIndex={0} sudoku={sudoku}/>
+            <Row rowIndex={1} sudoku={sudoku}/>
+            <Row rowIndex={2} sudoku={sudoku}/>
             <View className={`h-3`}></View>
-            <Row/>
-            <Row/>
-            <Row/>
+            <Row rowIndex={3} sudoku={sudoku}/>
+            <Row rowIndex={4} sudoku={sudoku}/>
+            <Row rowIndex={5} sudoku={sudoku}/>
             <View className={`h-3`}></View>
-            <Row/>
-            <Row/>
-            <Row/>
+            <Row rowIndex={6} sudoku={sudoku}/>
+            <Row rowIndex={7} sudoku={sudoku}/>
+            <Row rowIndex={8} sudoku={sudoku}/>
         </View>
     )
 }
 
 export default memo(Sudoku);
 
-type RowProps = {};
+type RowProps = {
+    rowIndex: number;
+    sudoku: ProgressSchema;
+};
 
-const Row = memo(({}: RowProps) => {
+const Row = memo(({rowIndex, sudoku}: RowProps) => {
     return (
         <View className={`flex flex-row gap-3`}>
-            <NineGrid/>
-            <NineGrid/>
-            <NineGrid/>
+            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={0}/>
+            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={3}/>
+            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={6}/>
         </View>
     );
 });
 
 
-type NineGridProps = {};
+type NineGridProps = {
+    rowIndex: number;
+    sudoku: ProgressSchema;
+    startCol: number;
+};
 
-const NineGrid = memo(({}: NineGridProps) => {
+const NineGrid = memo(({rowIndex, sudoku, startCol}: NineGridProps) => {
 
     return (
         <View className="flex-1 flex-row items-center justify-center">
-            <Cell></Cell>
-            <Cell></Cell>
-            <Cell></Cell>
+            <Cell rowIndex={rowIndex} colIndex={startCol} sudoku={sudoku}/>
+            <Cell rowIndex={rowIndex} colIndex={startCol + 1} sudoku={sudoku}/>
+            <Cell rowIndex={rowIndex} colIndex={startCol + 2} sudoku={sudoku}/>
         </View>
     );
 });
 
-type CellProps = {};
+type CellProps = {
+    rowIndex: number;
+    colIndex: number;
+    sudoku: ProgressSchema;
+};
 
-const Cell = memo(({}: CellProps) => {
+const Cell = memo(({rowIndex, colIndex, sudoku}: CellProps) => {
+    const gridString = sudoku.puzzle;
+    const seedGrid = gridString.match(/.{1,9}/g) || [];
+    const cellValue = seedGrid[rowIndex]?.[colIndex] || '0';
+    const displayValue = cellValue === '0' ? '' : cellValue;
+    const isFixedValue = !!displayValue
+
+
+    const getBackgroundColor = () => {
+        if (isFixedValue) {
+            return '#4A5565FF'  // grey-600
+        } else {
+            return '#E5E7EBFF'  // grey-200
+        }
+    };
+
+    const getFontColorClass = () => {
+        if (isFixedValue) {
+            return 'text-neutral-200'
+        } else {
+            return 'text-gray-900'
+        }
+    }
+
     // noinspection TypeScriptValidateTypes
     return (
         <SquircleView
-            className="flex-1 items-center justify-center aspect-square m-0.5 bg-background"
+            className="flex-1 items-center justify-center aspect-square m-0.5"
             squircleParams={{
                 cornerSmoothing: 0.8,
                 cornerRadius: 4,
-                // todo: use variable here
-                fillColor: '#f3f4f6',
+                fillColor: getBackgroundColor(),
             }}
         >
-            <Text className="font-mono text-xl font-bold tracking-wider sudoku-number">3</Text>
+            <Text
+                className={`font-mono text-xl font-bold tracking-wider sudoku-number ${getFontColorClass()}`}>{displayValue}</Text>
         </SquircleView>
         // todo: use this if no squircle is used
         // <View className="flex-1 items-center justify-center aspect-square m-1 bg-background shadow-md rounded-xl">
-        // <Text>1</Text>
-        //   </View>
+        //   <Text>1</Text>
+        // </View>
     );
 });
