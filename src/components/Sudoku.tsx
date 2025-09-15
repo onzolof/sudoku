@@ -3,8 +3,6 @@ import {View, Text} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
 
-const GRID_GAP_SIZE = 4
-
 type SudokuProps = {
     progressId: number;
 };
@@ -63,11 +61,11 @@ function Sudoku({progressId}: SudokuProps) {
             <Row/>
             <Row/>
             <Row/>
-            <View className={`h-${GRID_GAP_SIZE}`}></View>
+            <View className={`h-4`}></View>
             <Row/>
             <Row/>
             <Row/>
-            <View className={`h-${GRID_GAP_SIZE}`}></View>
+            <View className={`h-4`}></View>
             <Row/>
             <Row/>
             <Row/>
@@ -81,7 +79,7 @@ type RowProps = {};
 
 const Row = memo(({}: RowProps) => {
     return (
-        <View className={`flex flex-row gap-${GRID_GAP_SIZE}`}>
+        <View className={`flex flex-row gap-4`}>
             <NineGrid/>
             <NineGrid/>
             <NineGrid/>
@@ -108,7 +106,7 @@ type CellProps = {};
 const Cell = memo(({}: CellProps) => {
 
     return (
-        <View className="flex-1 items-center justify-center aspect-square border border-primary">
+        <View className="flex-1 items-center justify-center aspect-square">
             <Text>1</Text>
         </View>
     );
