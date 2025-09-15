@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+/* Added custom styles for Sudoku number aesthetics */
+.sudoku-number {
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: 0.05em;
+}
 
 /*@layer base {*/
 /*    :root {*/

@@ -2,6 +2,7 @@ import React, {memo, useEffect, useState} from 'react';
 import {View, Text} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
+import {SquircleView} from "react-native-figma-squircle";
 
 type SudokuProps = {
     progressId: number;
@@ -56,16 +57,15 @@ function Sudoku({progressId}: SudokuProps) {
 
 
     return (
-        // todo: h-full is just for debugging purposes -> remove
-        <View className="w-full h-full p-8">
+        <View className="w-full p-6">
             <Row/>
             <Row/>
             <Row/>
-            <View className={`h-4`}></View>
+            <View className={`h-3`}></View>
             <Row/>
             <Row/>
             <Row/>
-            <View className={`h-4`}></View>
+            <View className={`h-3`}></View>
             <Row/>
             <Row/>
             <Row/>
@@ -79,7 +79,7 @@ type RowProps = {};
 
 const Row = memo(({}: RowProps) => {
     return (
-        <View className={`flex flex-row gap-4`}>
+        <View className={`flex flex-row gap-3`}>
             <NineGrid/>
             <NineGrid/>
             <NineGrid/>
@@ -104,10 +104,21 @@ const NineGrid = memo(({}: NineGridProps) => {
 type CellProps = {};
 
 const Cell = memo(({}: CellProps) => {
-
+    // noinspection TypeScriptValidateTypes
     return (
-        <View className="flex-1 items-center justify-center aspect-square m-1 bg-background shadow-md">
-            <Text>1</Text>
-        </View>
+        <SquircleView
+            className="flex-1 items-center justify-center aspect-square m-0.5 bg-background"
+            squircleParams={{
+                cornerSmoothing: 0.8,
+                cornerRadius: 4,
+                fillColor: 'grey',
+            }}
+        >
+            <Text className="font-mono text-xl font-bold tracking-wider sudoku-number">3</Text>
+        </SquircleView>
+        // todo: use this if no squircle is used
+        // <View className="flex-1 items-center justify-center aspect-square m-1 bg-background shadow-md rounded-xl">
+        // <Text>1</Text>
+        //   </View>
     );
 });

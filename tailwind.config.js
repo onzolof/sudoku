@@ -4,6 +4,13 @@ module.exports = {
     presets: [require("nativewind/preset")],
     theme: {
         extend: {
+
+            fontFamily: {
+                'sans': ['Inter', 'system-ui', 'sans-serif'],
+                'serif': ['Manrope', 'serif'],
+                'mono': ['ui-monospace', 'SFMono-Regular', 'SF Mono', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+            },
+
             colors: {
                 background: "hsl(var(--background))",
                 foreground: "hsl(var(--foreground))",
