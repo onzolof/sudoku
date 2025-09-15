@@ -106,7 +106,7 @@ type CellProps = {};
 const Cell = memo(({}: CellProps) => {
 
     return (
-        <View className="flex-1 items-center justify-center aspect-square">
+        <View className="flex-1 items-center justify-center aspect-square m-1 bg-background shadow-md">
             <Text>1</Text>
         </View>
     );
