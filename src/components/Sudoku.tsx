@@ -2,8 +2,6 @@ import React, {memo, useEffect, useState} from 'react';
 import {View, Text} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
-import {SquircleView} from "react-native-figma-squircle";
-import {useColorScheme} from "nativewind";
 
 type SudokuProps = {
     progressId: number;
