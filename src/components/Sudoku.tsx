@@ -1,7 +1,8 @@
 import React, {memo, useEffect, useState} from 'react';
-import {View, Text} from 'react-native';
+import {View, Text, TouchableOpacity} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
+import {Ionicons} from "@expo/vector-icons";
 
 type SudokuProps = {
     progressId: number;
@@ -56,18 +57,62 @@ function Sudoku({progressId}: SudokuProps) {
 
 
     return (
+
         <View className="w-full p-6">
-            <Row rowIndex={0} sudoku={sudoku}/>
-            <Row rowIndex={1} sudoku={sudoku}/>
-            <Row rowIndex={2} sudoku={sudoku}/>
-            <View className={`h-3`}></View>
-            <Row rowIndex={3} sudoku={sudoku}/>
-            <Row rowIndex={4} sudoku={sudoku}/>
-            <Row rowIndex={5} sudoku={sudoku}/>
-            <View className={`h-3`}></View>
-            <Row rowIndex={6} sudoku={sudoku}/>
-            <Row rowIndex={7} sudoku={sudoku}/>
-            <Row rowIndex={8} sudoku={sudoku}/>
+            <View>
+                <Row rowIndex={0} sudoku={sudoku}/>
+                <Row rowIndex={1} sudoku={sudoku}/>
+                <Row rowIndex={2} sudoku={sudoku}/>
+                <View className={`h-3`}></View>
+                <Row rowIndex={3} sudoku={sudoku}/>
+                <Row rowIndex={4} sudoku={sudoku}/>
+                <Row rowIndex={5} sudoku={sudoku}/>
+                <View className={`h-3`}></View>
+                <Row rowIndex={6} sudoku={sudoku}/>
+                <Row rowIndex={7} sudoku={sudoku}/>
+                <Row rowIndex={8} sudoku={sudoku}/>
+            </View>
+            <View className="mt-24 px-6 pb-6">
+                <View className="gap-2">
+                    <View className="flex-row justify-center gap-2">
+                        {['1', '2', '3', '4', '5'].map((number) => (
+                            <TouchableOpacity
+                                key={number}
+                                onPress={() => console.log(`Pressed ${number}`)}
+                                className="w-16 h-16 rounded-full items-center justify-center bg-primary/20"
+                            >
+                                <Text className="text-lg font-bold text-primary">
+                                    {number}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View className="flex-row justify-center items-center gap-2">
+                        {['6', '7', '8', '9'].map((number) => (
+                            <TouchableOpacity
+                                key={number}
+                                onPress={() => console.log(`Pressed ${number}`)}
+                                className="w-16 h-16 rounded-full items-center justify-center bg-primary/20"
+                            >
+                                <Text className="text-lg font-bold text-primary">
+                                    {number}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+
+                        <TouchableOpacity
+                            onPress={() => console.log('Clear cell')}
+                            className="w-16 h-16 rounded-full items-center justify-center bg-primary/20"
+                        >
+
+                            <Text className="text-lg font-bold text-primary">
+                                <Ionicons name="trash-outline" size={16}/>
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
         </View>
     )
 }
