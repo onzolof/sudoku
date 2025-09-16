@@ -123,11 +123,11 @@ const Cell = memo(({rowIndex, colIndex, sudoku}: CellProps) => {
     const isFixedValue = !!displayValue
 
 
-    const getBackgroundColor = () => {
+    const getBackgroundStyleClasses = () => {
         if (isFixedValue) {
-            return '#4A5565FF'  // grey-600
+            return 'bg-gray-600'
         } else {
-            return '#E5E7EBFF'  // grey-200
+            return 'bg-gray-200'
         }
     };
 
@@ -139,22 +139,11 @@ const Cell = memo(({rowIndex, colIndex, sudoku}: CellProps) => {
         }
     }
 
-    // noinspection TypeScriptValidateTypes
     return (
-        <SquircleView
-            className="flex-1 items-center justify-center aspect-square m-0.5"
-            squircleParams={{
-                cornerSmoothing: 0.8,
-                cornerRadius: 4,
-                fillColor: getBackgroundColor(),
-            }}
-        >
+        <View
+            className={`flex-1 items-center justify-center aspect-square m-0.5 rounded-xl ${getBackgroundStyleClasses()}`}>
             <Text
                 className={`font-mono text-xl font-bold tracking-wider sudoku-number ${getFontColorClass()}`}>{displayValue}</Text>
-        </SquircleView>
-        // todo: use this if no squircle is used
-        // <View className="flex-1 items-center justify-center aspect-square m-1 bg-background shadow-md rounded-xl">
-        //   <Text>1</Text>
-        // </View>
+        </View>
     );
 });
