@@ -107,7 +107,7 @@ function Sudoku({progressId}: SudokuProps) {
                         >
 
                             <Text className="text-lg font-bold text-primary">
-                                <Ionicons name="trash-outline" size={16}/>
+                                <Ionicons name="trash-outline" size={20}/>
                             </Text>
                         </TouchableOpacity>
                     </View>
