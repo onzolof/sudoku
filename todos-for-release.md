@@ -1,5 +1,6 @@
 - alle todos durchgehen
 - translate app
 - app icon / branding
+- implement haptics
 - splash screen
 - mehr sudoku puzzles generieren

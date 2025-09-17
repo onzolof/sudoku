@@ -72,45 +72,30 @@ function Sudoku({progressId}: SudokuProps) {
                 <Row rowIndex={7} sudoku={sudoku}/>
                 <Row rowIndex={8} sudoku={sudoku}/>
             </View>
-            <View className="mt-24 px-6 pb-6">
-                <View className="gap-2">
-                    <View className="flex-row justify-center gap-2">
-                        {['1', '2', '3', '4', '5'].map((number) => (
-                            <TouchableOpacity
-                                key={number}
-                                onPress={() => console.log(`Pressed ${number}`)}
-                                className="w-16 h-16 rounded-full items-center justify-center bg-primary/20"
-                            >
-                                <Text className="text-lg font-bold text-primary">
-                                    {number}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <View className="flex-row justify-center items-center gap-2">
-                        {['6', '7', '8', '9'].map((number) => (
-                            <TouchableOpacity
-                                key={number}
-                                onPress={() => console.log(`Pressed ${number}`)}
-                                className="w-16 h-16 rounded-full items-center justify-center bg-primary/20"
-                            >
-                                <Text className="text-lg font-bold text-primary">
-                                    {number}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-
+            <View className="flex-row justify-center items-center mt-6">
+                <TouchableOpacity
+                    onPress={() => console.log('Clear cell')}
+                    className="w-16 h-16 items-center rounded justify-center"
+                >
+                    <Text className="text-lg font-bold text-muted-foreground">
+                        <Ionicons name="trash-outline" size={32}/>
+                        <Text className="text-muted-foreground">Bin inactive</Text>
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            <View className="mt-12">
+                <View className="w-full flex-row justify-center gap-1.5">
+                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((number) => (
                         <TouchableOpacity
-                            onPress={() => console.log('Clear cell')}
-                            className="w-16 h-16 rounded-full items-center justify-center bg-primary/20"
+                            key={number}
+                            onPress={() => console.log(`Pressed ${number}`)}
+                            className="w-16 h-16 flex-1 items-center justify-center"
                         >
-
-                            <Text className="text-lg font-bold text-primary">
-                                <Ionicons name="trash-outline" size={20}/>
+                            <Text className="text-5xl font-bold text-primary/50">
+                                {number}
                             </Text>
                         </TouchableOpacity>
-                    </View>
+                    ))}
                 </View>
             </View>
         </View>
@@ -168,18 +153,14 @@ const Cell = memo(({rowIndex, colIndex, sudoku}: CellProps) => {
 
     const getBackgroundStyleClasses = () => {
         if (isFixedValue) {
-            return 'bg-gray-900'
+            return 'bg-gray-300 border-2 border-gray-950'
         } else {
-            return 'bg-gray-200'
+            return 'bg-gray-200 border-2 border-gray-200'
         }
     };
 
     const getFontColorClass = () => {
-        if (isFixedValue) {
-            return 'text-white'
-        } else {
-            return 'text-gray-900'
-        }
+        return 'text-gray-950'
     }
 
     return (
