@@ -168,7 +168,7 @@ const Cell = memo(({rowIndex, colIndex, sudoku}: CellProps) => {
 
     const getBackgroundStyleClasses = () => {
         if (isFixedValue) {
-            return 'bg-gray-600'
+            return 'bg-gray-900'
         } else {
             return 'bg-gray-200'
         }
@@ -176,7 +176,7 @@ const Cell = memo(({rowIndex, colIndex, sudoku}: CellProps) => {
 
     const getFontColorClass = () => {
         if (isFixedValue) {
-            return 'text-neutral-200'
+            return 'text-white'
         } else {
             return 'text-gray-900'
         }
