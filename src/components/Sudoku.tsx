@@ -142,7 +142,7 @@ function Sudoku({progressId}: SudokuProps) {
                                 className={`text-5xl font-bold ${
                                     selectedNumber === number
                                         ? isContinuousMode
-                                            ? 'text-primary border-b border-primary'
+                                            ? 'text-primary border-b-4 border-primary'
                                             : 'text-primary'
                                         : 'text-primary/50'
                                 }`}>
