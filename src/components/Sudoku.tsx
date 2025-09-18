@@ -14,6 +14,7 @@ function Sudoku({progressId}: SudokuProps) {
     const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
     const [selectedNumber, setSelectedNumber] = useState<string | null>(null);
     const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
+    const [isContinuousMode, setIsContinuousMode] = useState(false);
 
     const gridString = (sudoku?.puzzle ?? '');
     const seedGrid = gridString.match(/.{1,9}/g) || [];
@@ -23,11 +24,19 @@ function Sudoku({progressId}: SudokuProps) {
             // If same number is pressed again, reset selection
             setSelectedNumber(null);
             setSelectedCell(null);
+            setIsContinuousMode(false);
         } else {
-            // Select new number
+            // Select new number (this will exit continuous mode)
             setSelectedNumber(number);
             setSelectedCell(null);
+            setIsContinuousMode(false);
         }
+    };
+
+    const handleNumberLongPress = (number: string) => {
+        setSelectedNumber(number);
+        setSelectedCell(null);
+        setIsContinuousMode(true);
     };
 
     const handleCellPress = (row: number, col: number, isFixed: boolean) => {
@@ -41,9 +50,11 @@ function Sudoku({progressId}: SudokuProps) {
             // TODO: Update the sudoku puzzle state here
             console.log(`Inserting ${selectedNumber} into cell (${row}, ${col})`);
 
-            // Reset selection after inserting
-            setSelectedNumber(null);
-            setSelectedCell(null);
+            // Only reset selection if not in continuous mode
+            if (!isContinuousMode) {
+                setSelectedNumber(null);
+                setSelectedCell(null);
+            }
         } else {
             // Select the cell for future number insertion
             setSelectedCell({row, col});
@@ -123,10 +134,18 @@ function Sudoku({progressId}: SudokuProps) {
                         <TouchableOpacity
                             key={number}
                             onPress={() => handleNumberPress(number)}
-                            className="w-16 h-16 flex-1 items-center justify-center"
+                            onLongPress={() => handleNumberLongPress(number)}
+                            delayLongPress={500}
+                            className="w-16 h-16 flex-1 items-center justify-center rounded-lg"
                         >
                             <Text
-                                className={`text-5xl font-bold ${selectedNumber === number ? 'text-primary' : 'text-primary/50'}`}>
+                                className={`text-5xl font-bold ${
+                                    selectedNumber === number
+                                        ? isContinuousMode
+                                            ? 'text-primary border-b border-primary'
+                                            : 'text-primary'
+                                        : 'text-primary/50'
+                                }`}>
                                 {number}
                             </Text>
                         </TouchableOpacity>
