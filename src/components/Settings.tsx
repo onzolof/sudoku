@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, Modal, ScrollView, StatusBar} from 'react-native';
+import {Modal, ScrollView, Text, TouchableOpacity, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {Difficulty} from '../types';
 import {difficulties, getThemeColor} from "../utils";
@@ -29,7 +29,6 @@ export default function Settings({visible, onClose}: SettingsProps) {
             presentationStyle="pageSheet"
             onRequestClose={onClose}
         >
-            <StatusBar/>
             <View className="flex-1" style={{backgroundColor: '#F8FAFC'}}>
                 <View
                     className="px-6 pt-12 pb-6"
