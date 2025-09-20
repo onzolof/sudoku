@@ -18,10 +18,21 @@ export class ProgressService {
 
     async getProgressRecordById(id: number): Promise<ProgressSchema | null> {
         try {
-            return await this.userDb.getFirstAsync(
+            const result = await this.userDb.getFirstAsync(
                 'SELECT * FROM progress WHERE id = ? LIMIT 1;',
                 [id]
-            ) as ProgressSchema;
+            );
+            
+            if (!result) return null;
+            
+            // Parse JSON fields that are stored as strings in the database
+            const parsedResult: ProgressSchema = {
+                ...result,
+                moves: result.moves ? JSON.parse(result.moves) : null,
+                notes: result.notes ? JSON.parse(result.notes) : null
+            };
+            
+            return parsedResult;
         } catch (error) {
             console.error('Failed to get progress record by id:', error);
             return null;
@@ -40,10 +51,17 @@ export class ProgressService {
         try {
             // Get all progress records for this difficulty, ordered by id
             // todo: is it possible to avoid loading everything here?
-            const allProgress = await this.userDb.getAllAsync(
+            const allProgressRaw = await this.userDb.getAllAsync(
                 'SELECT * FROM progress WHERE difficulty = ? ORDER BY id ASC',
                 [difficulty]
-            ) as ProgressSchema[];
+            );
+            
+            // Parse JSON fields for each progress record
+            const allProgress = allProgressRaw.map((result: any) => ({
+                ...result,
+                moves: result.moves ? JSON.parse(result.moves) : null,
+                notes: result.notes ? JSON.parse(result.notes) : null
+            })) as ProgressSchema[];
 
             if (allProgress.length === 0) {
                 return { previous: null, current: null, next: null };
@@ -74,6 +92,18 @@ export class ProgressService {
         } catch (error) {
             console.error('Failed to get progress navigation:', error);
             return { previous: null, current: null, next: null };
+        }
+    }
+
+    async updateProgress(progress: ProgressSchema): Promise<void> {
+        try {
+            await this.userDb.runAsync(
+                'UPDATE progress SET moves = ?, solved = ? WHERE id = ?;',
+                [JSON.stringify(progress.moves), progress.solved, progress.id]
+            );
+        } catch (error) {
+            console.error('Failed to update progress:', error);
+            throw error;
         }
     }
 }

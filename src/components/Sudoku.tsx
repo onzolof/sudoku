@@ -1,12 +1,12 @@
-import React, {memo, useEffect, useState} from 'react';
+import React, {memo} from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     TouchableWithoutFeedback,
 } from 'react-native';
-import {Move, ProgressSchema} from "../types";
-import {useServices} from "../hooks";
+import {ProgressSchema} from "../types";
+import {useSudokuGame} from "../hooks";
 import {Ionicons} from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 
@@ -14,58 +14,75 @@ type SudokuProps = {
     progressId: number;
 };
 
+// todo: review and clean up this state
+// todo: do the individual Haptics-Styles make sense / match each other?
+// todo: the following bugs exist
+  // todo: undo a clear does not work
+  // todo: disabled/enabled of undo button does not work (when starting a new sudoku it is already enabled)
+  // todo: undo disable/enabled seems to be wrong when closing & reopening the app after doing few numbers. first it is enabled, then it gets disabled even though the undo does still work and remove move by move
+
 function Sudoku({progressId}: SudokuProps) {
-    const {progressService} = useServices();
-    const [loading, setLoading] = useState(true);
-    const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
-    const [selectedCell, setSelectedCell] = useState<{ row: number, col: number, isFixed: boolean } | null>(null);
+    const {
+        selectedCell,
+        sudoku,
+        isSolved,
+        loading,
+        cellSelected,
+        numberPressed,
+        undo,
+        clearSelectedCell
+    } = useSudokuGame({ progressId });
 
     const handleNumberPress = (number: number) => {
-        if (selectedCell && !selectedCell.isFixed) {
-            setNumber(number)
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-        }
+        numberPressed(number);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     };
-
-    const setNumber = (number: number) => {
-        if (!sudoku!.moves) {
-            // empty initialize moves if not already happened
-            sudoku!.moves = []
-        }
-        // todo: only add a new move, when the value changed for the given cell. check the current value of the cell first.
-        sudoku!.moves!.push({col: selectedCell!.col, row: selectedCell!.row, value: number})
-        saveSudoku()
-    }
-
-    const saveSudoku = () => {
-       // todo:
-       // progressService.updateProgress(sudoku)
-    }
 
     const handleCellPress = (row: number, col: number, isFixed: boolean) => {
-        setSelectedCell({row, col, isFixed});
+        cellSelected(row, col, isFixed);
     };
 
-    useEffect(() => {
-        const loadProgress = async () => {
-            try {
-                const loadedSudoku = await progressService.getProgressRecordById(progressId);
-                if (loadedSudoku) {
-                    setSudoku(loadedSudoku);
-                } else {
-                    // This should not happen - Content component ensures progress records exist
-                    console.error(`Progress record not found for progress ID: ${progressId}`);
-                }
-            } catch (error) {
-                console.error('Failed to load Sudoku progress:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const handleClearCell = () => {
+        clearSelectedCell();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    };
 
-        setLoading(true);
-        loadProgress();
-    }, [progressId, progressService]);
+    const handleUndo = () => {
+        undo();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    };
+
+    // Check if the selected cell has a value (either original or user input)
+    const hasSelectedCellValue = () => {
+        if (!selectedCell || !sudoku) return false;
+        
+        const { row, col } = selectedCell;
+        
+        // Check if there's a user move for this cell
+        const moves = Array.isArray(sudoku.moves) ? sudoku.moves : [];
+        const userMove = moves.find(move => move.row === row && move.col === col);
+        
+        if (userMove) {
+            // If there's a user move, check if it has a value (not cleared)
+            return userMove.value !== null;
+        }
+        
+        // Check if there's an original value (fixed cell)
+        const gridString = sudoku.puzzle;
+        const seedGrid = gridString.match(/.{1,9}/g) || [];
+        const originalValue = seedGrid[row]?.[col] || '0';
+        
+        return originalValue !== '0';
+    };
+
+    // todo: maybe get rid of this progress
+    if (loading) {
+        return (
+            <View className="flex-1 items-center justify-center">
+                <Text className="text-base text-foreground">Loading Sudoku...</Text>
+            </View>
+        );
+    }
 
     if (!sudoku) {
         return (
@@ -78,6 +95,15 @@ function Sudoku({progressId}: SudokuProps) {
 
     return (
         <View className="w-full p-6">
+            {/*todo: restyle this?*/}
+            {isSolved && (
+                <View className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                    <Text className="text-center text-green-800 font-bold">
+                        🎉 Sudoku Solved! 🎉
+                    </Text>
+                </View>
+            )}
+            
             <View>
                 <Row rowIndex={0} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
                 <Row rowIndex={1} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
@@ -91,14 +117,34 @@ function Sudoku({progressId}: SudokuProps) {
                 <Row rowIndex={7} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
                 <Row rowIndex={8} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
             </View>
-            <View className="flex-row justify-center items-center mt-6">
+            
+            <View className="flex-row justify-center items-center mt-6 gap-4">
+                {/*todo: restyle these buttons*/}
                 <TouchableOpacity
-                    onPress={() => console.log('Clear cell')}
+                    onPress={handleUndo}
                     className="w-16 h-16 items-center rounded justify-center"
+                    disabled={!sudoku.moves || sudoku.moves.length === 0}
                 >
                     <Text className="text-lg font-bold text-muted-foreground">
-                        <Ionicons name="trash-outline" size={32}/>
-                        <Text className="text-muted-foreground">Bin inactive</Text>
+                        <Ionicons name="arrow-undo-outline" size={32}/>
+                        <Text className="text-muted-foreground">Undo</Text>
+                    </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                    onPress={handleClearCell}
+                    className="w-16 h-16 items-center rounded justify-center"
+                    disabled={!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()}
+                >
+                    <Text className="text-lg font-bold text-muted-foreground">
+                        <Ionicons 
+                            name="trash-outline" 
+                            size={32} 
+                            color={(!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()) ? '#9CA3AF' : undefined}
+                        />
+                        <Text className={`${(!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()) ? 'text-gray-400' : 'text-muted-foreground'}`}>
+                            Clear
+                        </Text>
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -173,11 +219,25 @@ type CellProps = {
 const Cell = memo(({
                        rowIndex, colIndex, sudoku, onCellPress, selectedCell
                    }: CellProps & { selectedCell: { row: number, col: number, isFixed: boolean } | null }) => {
+    // Get the original puzzle seed
     const gridString = sudoku.puzzle;
     const seedGrid = gridString.match(/.{1,9}/g) || [];
-    const cellValue = seedGrid[rowIndex]?.[colIndex] || '0';
-    const displayValue = cellValue === '0' ? '' : cellValue;
-    const isFixedValue = !!displayValue;
+    const originalValue = seedGrid[rowIndex]?.[colIndex] || '0';
+    const isFixedValue = originalValue !== '0';
+    
+    // Get the current value (original + moves)
+    const moves = sudoku.moves || [];
+    const currentMove = moves.find(move => move.row === rowIndex && move.col === colIndex);
+    const currentValue = currentMove ? currentMove.value : (originalValue !== '0' ? parseInt(originalValue) : null);
+    const displayValue = currentValue ? currentValue.toString() : '';
+
+    // Helper function to get current cell value for any row/col
+    const getCurrentCellValue = (row: number, col: number) => {
+        const move = moves.find(m => m.row === row && m.col === col);
+        if (move) return move.value;
+        const originalVal = seedGrid[row]?.[col] || '0';
+        return originalVal !== '0' ? parseInt(originalVal) : null;
+    };
 
     // Helper function to get the 3x3 grid boundaries
     const getGridBoundaries = (row: number, col: number) => {
@@ -212,7 +272,8 @@ const Cell = memo(({
         }
 
         // Same number (if selected cell has a value)
-        if (displayValue && cellValue === seedGrid[selectedRow]?.[selectedCol]) {
+        const selectedCellValue = getCurrentCellValue(selectedRow, selectedCol);
+        if (displayValue && selectedCellValue && displayValue === selectedCellValue.toString()) {
             return 'highlight';
         }
 
