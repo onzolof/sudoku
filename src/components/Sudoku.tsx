@@ -3,6 +3,7 @@ import {
     View,
     Text,
     TouchableOpacity,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import {Move, ProgressSchema} from "../types";
 import {useServices} from "../hooks";
@@ -226,7 +227,7 @@ const Cell = memo(({
     const getBackgroundStyleClasses = () => {
         if (highlightType === 'selected') {
             if (isFixedValue) {
-                return 'bg-gray-300 border-2 border-gray-950'
+                return 'bg-primary/20 border-2 border-gray-950'
             } else {
                 return 'bg-primary border-2 border-primary'
             }
@@ -254,11 +255,12 @@ const Cell = memo(({
     };
 
     return (
-        <TouchableOpacity
-            onPress={() => onCellPress(rowIndex, colIndex, isFixedValue)}
-            className={`flex-1 items-center justify-center aspect-square m-0.5 rounded-xl ${getBackgroundStyleClasses()}`}>
-            <Text
-                className={`font-mono text-xl font-bold tracking-wider sudoku-number ${getTextStyleClasses()}`}>{displayValue}</Text>
-        </TouchableOpacity>
+        <TouchableWithoutFeedback
+            onPress={() => onCellPress(rowIndex, colIndex, isFixedValue)}>
+            <View className={`flex-1 items-center justify-center aspect-square m-0.5 rounded-xl ${getBackgroundStyleClasses()}`}>
+                <Text
+                    className={`font-mono text-xl font-bold tracking-wider sudoku-number ${getTextStyleClasses()}`}>{displayValue}</Text>
+            </View>
+        </TouchableWithoutFeedback>
     );
 });
