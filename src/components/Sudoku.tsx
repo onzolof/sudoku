@@ -20,9 +20,6 @@ function Sudoku({progressId}: SudokuProps) {
     const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
     const [selectedCell, setSelectedCell] = useState<{ row: number, col: number, isFixed: boolean } | null>(null);
 
-    const gridString = (sudoku?.puzzle ?? '');
-    const seedGrid = gridString.match(/.{1,9}/g) || [];
-
     const handleNumberPress = (number: number) => {
         if (selectedCell && !selectedCell.isFixed) {
             setNumber(number)
