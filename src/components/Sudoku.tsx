@@ -3,6 +3,7 @@ import {View, Text, TouchableOpacity} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
 import {Ionicons} from "@expo/vector-icons";
+import * as Haptics from 'expo-haptics';
 
 type SudokuProps = {
     progressId: number;
@@ -46,9 +47,7 @@ function Sudoku({progressId}: SudokuProps) {
         }
 
         if (selectedNumber) {
-            // Insert the selected number into the cell
-            // TODO: Update the sudoku puzzle state here
-            console.log(`Inserting ${selectedNumber} into cell (${row}, ${col})`);
+            insertNumberIntoCell(row, col)
 
             // Only reset selection if not in continuous mode
             if (!isContinuousMode) {
@@ -60,6 +59,11 @@ function Sudoku({progressId}: SudokuProps) {
             setSelectedCell({row, col});
         }
     };
+
+    const insertNumberIntoCell = (row: number, col: number) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        console.log(`Inserting ${selectedNumber} into cell (${row}, ${col})`);
+    }
 
     useEffect(() => {
         const loadProgress = async () => {
@@ -138,6 +142,7 @@ function Sudoku({progressId}: SudokuProps) {
                             delayLongPress={500}
                             className="w-16 h-16 flex-1 items-center justify-center rounded-lg"
                         >
+                            {/*todo: bug beim styling (farbe wird zunehmend heller), wenn ich den zahlen-button mehrmeals drücke*/}
                             <Text
                                 className={`text-5xl font-bold ${
                                     selectedNumber === number
