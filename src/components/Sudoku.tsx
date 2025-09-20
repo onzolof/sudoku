@@ -18,59 +18,22 @@ function Sudoku({progressId}: SudokuProps) {
     const {progressService} = useServices();
     const [loading, setLoading] = useState(true);
     const [sudoku, setSudoku] = useState<ProgressSchema | null>(null);
-    const [selectedNumber, setSelectedNumber] = useState<string | null>(null);
-    const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
-    const [isContinuousMode, setIsContinuousMode] = useState(false);
+    const [selectedCell, setSelectedCell] = useState<{ row: number, col: number, isFixed: boolean } | null>(null);
 
     const gridString = (sudoku?.puzzle ?? '');
     const seedGrid = gridString.match(/.{1,9}/g) || [];
 
     const handleNumberPress = (number: string) => {
-        if (selectedNumber === number) {
-            // If same number is pressed again, reset selection
-            setSelectedNumber(null);
-            setSelectedCell(null);
-            setIsContinuousMode(false);
-        } else {
-            // Select new number (this will exit continuous mode)
-            setSelectedNumber(number);
-            setSelectedCell(null);
-            setIsContinuousMode(false);
+        if (selectedCell && !selectedCell.isFixed) {
+            console.log('do insert number')
+            // todo: store value in cell
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         }
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-    };
-
-    const handleNumberLongPress = (number: string) => {
-        setSelectedNumber(number);
-        setSelectedCell(null);
-        setIsContinuousMode(true);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     };
 
     const handleCellPress = (row: number, col: number, isFixed: boolean) => {
-        if (isFixed) {
-            // Do nothing for fixed cells
-            return;
-        }
-
-        if (selectedNumber) {
-            insertNumberIntoCell(row, col)
-
-            // Only reset selection if not in continuous mode
-            if (!isContinuousMode) {
-                setSelectedNumber(null);
-                setSelectedCell(null);
-            }
-        } else {
-            // Select the cell for future number insertion
-            setSelectedCell({row, col});
-        }
+        setSelectedCell({row, col, isFixed});
     };
-
-    const insertNumberIntoCell = (row: number, col: number) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        console.log(`Inserting ${selectedNumber} into cell (${row}, ${col})`);
-    }
 
     useEffect(() => {
         const loadProgress = async () => {
@@ -140,28 +103,22 @@ function Sudoku({progressId}: SudokuProps) {
                 </TouchableOpacity>
             </View>
             <View className="mt-12">
-                <View className="flex-row items-center justify-center gap-1.5 p-2">
+                <View className="w-full flex-row justify-center gap-1.5">
                     {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((number) => (
-                        <TouchableWithoutFeedback
+                        <TouchableOpacity
                             key={number}
                             onPress={() => handleNumberPress(number)}
-                            onLongPress={() => handleNumberLongPress(number)}
+                            disabled={!selectedCell || selectedCell.isFixed}
                             delayLongPress={500}
-                            className="flex-1 rounded-lg"
+                            className="w-16 h-16 flex-1 items-center justify-center rounded-lg"
                         >
-                            <View className="flex-1 content-evenly items-center justify-center h-16 ">
-                                <Text
-                                    className={`font-mono text-5xl font-bold border-b-4 ${
-                                        selectedNumber === number
-                                            ? isContinuousMode
-                                                ? 'text-primary border-primary'
-                                                : 'text-primary border-transparent'
-                                            : 'text-primary/50 border-transparent'
-                                    }`}>
-                                    {number}
-                                </Text>
-                            </View>
-                        </TouchableWithoutFeedback>
+                            <Text
+                                key={`${number}`}
+                                className={`font-mono text-5xl font-bold text-5xl font-bold ${selectedCell && !selectedCell.isFixed ? 'text-primary' : 'text-primary/50'}`}>
+                                {number}
+                            </Text>
+                        </TouchableOpacity>
+
                     ))}
                 </View>
             </View>
@@ -195,7 +152,9 @@ type NineGridProps = {
     onCellPress: (row: number, col: number, isFixed: boolean) => void;
 };
 
-const NineGrid = memo(({rowIndex, sudoku, startCol, onCellPress}: NineGridProps) => {
+const NineGrid = memo(({
+                           rowIndex, sudoku, startCol, onCellPress
+                       }: NineGridProps) => {
 
     return (
         <View className="flex-1 flex-row items-center justify-center">
@@ -213,7 +172,9 @@ type CellProps = {
     onCellPress: (row: number, col: number, isFixed: boolean) => void;
 };
 
-const Cell = memo(({rowIndex, colIndex, sudoku, onCellPress}: CellProps) => {
+const Cell = memo(({
+                       rowIndex, colIndex, sudoku, onCellPress
+                   }: CellProps) => {
     const gridString = sudoku.puzzle;
     const seedGrid = gridString.match(/.{1,9}/g) || [];
     const cellValue = seedGrid[rowIndex]?.[colIndex] || '0';
