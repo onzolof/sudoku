@@ -3,4 +3,6 @@
 - app icon / branding
 - implement haptics
 - splash screen
+- test haptics
+- test iphone mini, iphone max and ipad
 - mehr sudoku puzzles generieren

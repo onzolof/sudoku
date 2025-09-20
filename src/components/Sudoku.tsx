@@ -1,5 +1,10 @@
 import React, {memo, useEffect, useState} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+} from 'react-native';
 import {ProgressSchema} from "../types";
 import {useServices} from "../hooks";
 import {Ionicons} from "@expo/vector-icons";
@@ -32,12 +37,14 @@ function Sudoku({progressId}: SudokuProps) {
             setSelectedCell(null);
             setIsContinuousMode(false);
         }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     };
 
     const handleNumberLongPress = (number: string) => {
         setSelectedNumber(number);
         setSelectedCell(null);
         setIsContinuousMode(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     };
 
     const handleCellPress = (row: number, col: number, isFixed: boolean) => {
@@ -133,27 +140,28 @@ function Sudoku({progressId}: SudokuProps) {
                 </TouchableOpacity>
             </View>
             <View className="mt-12">
-                <View className="w-full flex-row justify-center gap-1.5">
+                <View className="flex-row items-center justify-center gap-1.5 p-2">
                     {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((number) => (
-                        <TouchableOpacity
+                        <TouchableWithoutFeedback
                             key={number}
                             onPress={() => handleNumberPress(number)}
                             onLongPress={() => handleNumberLongPress(number)}
                             delayLongPress={500}
-                            className="w-16 h-16 flex-1 items-center justify-center rounded-lg"
+                            className="flex-1 rounded-lg"
                         >
-                            {/*todo: bug beim styling (farbe wird zunehmend heller), wenn ich den zahlen-button mehrmeals drücke*/}
-                            <Text
-                                className={`text-5xl font-bold ${
-                                    selectedNumber === number
-                                        ? isContinuousMode
-                                            ? 'text-primary border-b-4 border-primary'
-                                            : 'text-primary'
-                                        : 'text-primary/50'
-                                }`}>
-                                {number}
-                            </Text>
-                        </TouchableOpacity>
+                            <View className="flex-1 content-evenly items-center justify-center h-16 ">
+                                <Text
+                                    className={`font-mono text-5xl font-bold border-b-4 ${
+                                        selectedNumber === number
+                                            ? isContinuousMode
+                                                ? 'text-primary border-primary'
+                                                : 'text-primary border-transparent'
+                                            : 'text-primary/50 border-transparent'
+                                    }`}>
+                                    {number}
+                                </Text>
+                            </View>
+                        </TouchableWithoutFeedback>
                     ))}
                 </View>
             </View>
