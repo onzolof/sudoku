@@ -25,7 +25,19 @@ export interface ProgressSchema {
     puzzleId: string;
     puzzle: string;          // the original starting point of the sudoku
     difficulty: string;      // difficulty level
-    moves: string | null;    // stored as JSON TEXT
-    notes: string | null;    // stored as JSON TEXT
+    moves: Move[] | null;    // stored as JSON TEXT
+    notes: Notes[] | null;    // stored as JSON TEXT
     solved: number;          // 0/1 in DB
+}
+
+export interface Move {
+    col: number
+    row: number
+    value: number | null
+}
+
+export interface Notes {
+    col: number
+    row: number
+    notes: number[] | null
 }

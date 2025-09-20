@@ -3,9 +3,8 @@ import {
     View,
     Text,
     TouchableOpacity,
-    TouchableWithoutFeedback,
 } from 'react-native';
-import {ProgressSchema} from "../types";
+import {Move, ProgressSchema} from "../types";
 import {useServices} from "../hooks";
 import {Ionicons} from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
@@ -23,13 +22,27 @@ function Sudoku({progressId}: SudokuProps) {
     const gridString = (sudoku?.puzzle ?? '');
     const seedGrid = gridString.match(/.{1,9}/g) || [];
 
-    const handleNumberPress = (number: string) => {
+    const handleNumberPress = (number: number) => {
         if (selectedCell && !selectedCell.isFixed) {
-            console.log('do insert number')
-            // todo: store value in cell
+            setNumber(number)
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         }
     };
+
+    const setNumber = (number: number) => {
+        if (!sudoku!.moves) {
+            // empty initialize moves if not already happened
+            sudoku!.moves = []
+        }
+        // todo: only add a new move, when the value changed for the given cell. check the current value of the cell first.
+        sudoku!.moves!.push({col: selectedCell!.col, row: selectedCell!.row, value: number})
+        saveSudoku()
+    }
+
+    const saveSudoku = () => {
+       // todo:
+       // progressService.updateProgress(sudoku)
+    }
 
     const handleCellPress = (row: number, col: number, isFixed: boolean) => {
         setSelectedCell({row, col, isFixed});
@@ -56,15 +69,6 @@ function Sudoku({progressId}: SudokuProps) {
         loadProgress();
     }, [progressId, progressService]);
 
-    // todo: replace with a beutifyl spinner
-    // if (loading) {
-    // return (
-    // <View className="flex-1 items-center justify-center">
-    //     <Text className="text-base text-foreground opacity-70">Loading puzzle...</Text>
-    // </View>
-    // );
-    // }
-
     if (!sudoku) {
         return (
             <View className="flex-1 items-center justify-center">
@@ -74,9 +78,7 @@ function Sudoku({progressId}: SudokuProps) {
         );
     }
 
-
     return (
-
         <View className="w-full p-6">
             <View>
                 <Row rowIndex={0} sudoku={sudoku} onCellPress={handleCellPress}/>
@@ -104,21 +106,19 @@ function Sudoku({progressId}: SudokuProps) {
             </View>
             <View className="mt-12">
                 <View className="w-full flex-row justify-center gap-1.5">
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((number) => (
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
                         <TouchableOpacity
                             key={number}
                             onPress={() => handleNumberPress(number)}
                             disabled={!selectedCell || selectedCell.isFixed}
-                            delayLongPress={500}
-                            className="w-16 h-16 flex-1 items-center justify-center rounded-lg"
+                            className="flex-1 rounded-lg"
                         >
                             <Text
                                 key={`${number}`}
-                                className={`font-mono text-5xl font-bold text-5xl font-bold ${selectedCell && !selectedCell.isFixed ? 'text-primary' : 'text-primary/50'}`}>
+                                className={`font-mono text-5xl font-bold ${selectedCell && !selectedCell.isFixed ? 'text-primary' : 'text-primary/50'}`}>
                                 {number}
                             </Text>
                         </TouchableOpacity>
-
                     ))}
                 </View>
             </View>
@@ -189,16 +189,12 @@ const Cell = memo(({
         }
     };
 
-    const getFontColorClass = () => {
-        return 'text-gray-950'
-    }
-
     return (
         <TouchableOpacity
             onPress={() => onCellPress(rowIndex, colIndex, isFixedValue)}
             className={`flex-1 items-center justify-center aspect-square m-0.5 rounded-xl ${getBackgroundStyleClasses()}`}>
             <Text
-                className={`font-mono text-xl font-bold tracking-wider sudoku-number ${getFontColorClass()}`}>{displayValue}</Text>
+                className="font-mono text-xl font-bold tracking-wider sudoku-number text-gray-950">{displayValue}</Text>
         </TouchableOpacity>
     );
 });
