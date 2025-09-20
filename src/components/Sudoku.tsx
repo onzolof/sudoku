@@ -20,6 +20,7 @@ type SudokuProps = {
   // todo: undo a clear does not work
   // todo: disabled/enabled of undo button does not work (when starting a new sudoku it is already enabled)
   // todo: undo disable/enabled seems to be wrong when closing & reopening the app after doing few numbers. first it is enabled, then it gets disabled even though the undo does still work and remove move by move
+  // todo: number button: when pressed, opacity remains existing after inserting a number into the grid
 
 function Sudoku({progressId}: SudokuProps) {
     const {
