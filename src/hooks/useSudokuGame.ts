@@ -152,25 +152,26 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
         setSelectedCell({row, col, isFixed});
     }, []);
 
-    const numberPressed = useCallback((number: number | null) => {
+    const numberPressed = useCallback((optionalNumber: number | null) => {
         if (!selectedCell || selectedCell.isFixed || !sudoku) return;
 
         const {row, col} = selectedCell;
 
-        // Initialize moves array if it doesn't exist
         if (!Array.isArray(sudoku.moves)) {
             sudoku.moves = [];
         }
 
-        // Check if move is equal to the previous one
         const previousMove = sudoku.moves.at(-1)
-        const newMove = {row, col, value: number}
-        if (previousMove !== newMove) {
+        const newMove = {row, col, value: optionalNumber}
+        const isSameMove = previousMove &&
+            previousMove.row === newMove.row &&
+            previousMove.col === newMove.col &&
+            previousMove.value === newMove.value;
+        if (!isSameMove) {
             sudoku.moves.push(newMove);
+            setSudoku({...sudoku});
+            saveSudoku();
         }
-
-        setSudoku({...sudoku});
-        saveSudoku();
     }, [selectedCell, sudoku, saveSudoku]);
 
     const undo = useCallback(() => {
@@ -188,7 +189,7 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
 
     const clearSelectedCell = useCallback(() => {
         numberPressed(null)
-    }, [sudoku, saveSudoku]);
+    }, [numberPressed]);
 
     return {
         // States
