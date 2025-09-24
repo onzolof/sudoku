@@ -17,10 +17,10 @@ type SudokuProps = {
 // todo: review and clean up this state
 // todo: do the individual Haptics-Styles make sense / match each other?
 // todo: the following bugs exist
-  // todo: undo a clear does not work
-  // todo: disabled/enabled of undo button does not work (when starting a new sudoku it is already enabled)
-  // todo: undo disable/enabled seems to be wrong when closing & reopening the app after doing few numbers. first it is enabled, then it gets disabled even though the undo does still work and remove move by move
-  // todo: number button: when pressed, opacity remains existing after inserting a number into the grid
+// todo: undo a clear does not work
+// todo: disabled/enabled of undo button does not work (when starting a new sudoku it is already enabled)
+// todo: undo disable/enabled seems to be wrong when closing & reopening the app after doing few numbers. first it is enabled, then it gets disabled even though the undo does still work and remove move by move
+// todo: number button: when pressed, opacity remains existing after inserting a number into the grid
 
 function Sudoku({progressId}: SudokuProps) {
     const {
@@ -32,10 +32,10 @@ function Sudoku({progressId}: SudokuProps) {
         numberPressed,
         undo,
         clearSelectedCell
-    } = useSudokuGame({ progressId });
+    } = useSudokuGame({progressId});
 
     const handleNumberPress = (number: number) => {
-        numberPressed(number);
+        numberPressed(number!);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     };
 
@@ -44,7 +44,7 @@ function Sudoku({progressId}: SudokuProps) {
     };
 
     const handleClearCell = () => {
-        clearSelectedCell();
+        clearSelectedCell()
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     };
 
@@ -56,23 +56,23 @@ function Sudoku({progressId}: SudokuProps) {
     // Check if the selected cell has a value (either original or user input)
     const hasSelectedCellValue = () => {
         if (!selectedCell || !sudoku) return false;
-        
-        const { row, col } = selectedCell;
-        
+
+        const {row, col} = selectedCell;
+
         // Check if there's a user move for this cell
         const moves = Array.isArray(sudoku.moves) ? sudoku.moves : [];
         const userMove = moves.find(move => move.row === row && move.col === col);
-        
+
         if (userMove) {
             // If there's a user move, check if it has a value (not cleared)
             return userMove.value !== null;
         }
-        
+
         // Check if there's an original value (fixed cell)
         const gridString = sudoku.puzzle;
         const seedGrid = gridString.match(/.{1,9}/g) || [];
         const originalValue = seedGrid[row]?.[col] || '0';
-        
+
         return originalValue !== '0';
     };
 
@@ -104,7 +104,7 @@ function Sudoku({progressId}: SudokuProps) {
                     </Text>
                 </View>
             )}
-            
+
             <View>
                 <Row rowIndex={0} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
                 <Row rowIndex={1} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
@@ -118,7 +118,7 @@ function Sudoku({progressId}: SudokuProps) {
                 <Row rowIndex={7} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
                 <Row rowIndex={8} sudoku={sudoku} onCellPress={handleCellPress} selectedCell={selectedCell}/>
             </View>
-            
+
             <View className="flex-row justify-center items-center mt-6 gap-4">
                 {/*todo: restyle these buttons*/}
                 <TouchableOpacity
@@ -131,19 +131,20 @@ function Sudoku({progressId}: SudokuProps) {
                         <Text className="text-muted-foreground">Undo</Text>
                     </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                     onPress={handleClearCell}
                     className="w-16 h-16 items-center rounded justify-center"
                     disabled={!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()}
                 >
                     <Text className="text-lg font-bold text-muted-foreground">
-                        <Ionicons 
-                            name="trash-outline" 
-                            size={32} 
+                        <Ionicons
+                            name="trash-outline"
+                            size={32}
                             color={(!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()) ? '#9CA3AF' : undefined}
                         />
-                        <Text className={`${(!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()) ? 'text-gray-400' : 'text-muted-foreground'}`}>
+                        <Text
+                            className={`${(!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()) ? 'text-gray-400' : 'text-muted-foreground'}`}>
                             Clear
                         </Text>
                     </Text>
@@ -179,12 +180,17 @@ type RowProps = {
     onCellPress: (row: number, col: number, isFixed: boolean) => void;
 };
 
-const Row = memo(({rowIndex, sudoku, onCellPress, selectedCell}: RowProps & { selectedCell: { row: number, col: number, isFixed: boolean } | null }) => {
+const Row = memo(({rowIndex, sudoku, onCellPress, selectedCell}: RowProps & {
+    selectedCell: { row: number, col: number, isFixed: boolean } | null
+}) => {
     return (
         <View className={`flex flex-row gap-3`}>
-            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={0} onCellPress={onCellPress} selectedCell={selectedCell}/>
-            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={3} onCellPress={onCellPress} selectedCell={selectedCell}/>
-            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={6} onCellPress={onCellPress} selectedCell={selectedCell}/>
+            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={0} onCellPress={onCellPress}
+                      selectedCell={selectedCell}/>
+            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={3} onCellPress={onCellPress}
+                      selectedCell={selectedCell}/>
+            <NineGrid rowIndex={rowIndex} sudoku={sudoku} startCol={6} onCellPress={onCellPress}
+                      selectedCell={selectedCell}/>
         </View>
     );
 });
@@ -203,9 +209,12 @@ const NineGrid = memo(({
 
     return (
         <View className="flex-1 flex-row items-center justify-center">
-            <Cell rowIndex={rowIndex} colIndex={startCol} sudoku={sudoku} onCellPress={onCellPress} selectedCell={selectedCell}/>
-            <Cell rowIndex={rowIndex} colIndex={startCol + 1} sudoku={sudoku} onCellPress={onCellPress} selectedCell={selectedCell}/>
-            <Cell rowIndex={rowIndex} colIndex={startCol + 2} sudoku={sudoku} onCellPress={onCellPress} selectedCell={selectedCell}/>
+            <Cell rowIndex={rowIndex} colIndex={startCol} sudoku={sudoku} onCellPress={onCellPress}
+                  selectedCell={selectedCell}/>
+            <Cell rowIndex={rowIndex} colIndex={startCol + 1} sudoku={sudoku} onCellPress={onCellPress}
+                  selectedCell={selectedCell}/>
+            <Cell rowIndex={rowIndex} colIndex={startCol + 2} sudoku={sudoku} onCellPress={onCellPress}
+                  selectedCell={selectedCell}/>
         </View>
     );
 });
@@ -225,7 +234,7 @@ const Cell = memo(({
     const seedGrid = gridString.match(/.{1,9}/g) || [];
     const originalValue = seedGrid[rowIndex]?.[colIndex] || '0';
     const isFixedValue = originalValue !== '0';
-    
+
     // Get the current value (original + moves)
     const moves = sudoku.moves || [];
     const currentMove = moves.find(move => move.row === rowIndex && move.col === colIndex);
@@ -246,14 +255,14 @@ const Cell = memo(({
         const endRow = startRow + 2;
         const startCol = Math.floor(col / 3) * 3;
         const endCol = startCol + 2;
-        return { startRow, endRow, startCol, endCol };
+        return {startRow, endRow, startCol, endCol};
     };
 
     // Check if this cell should be highlighted
     const shouldHighlight = () => {
         if (!selectedCell) return false;
 
-        const { row: selectedRow, col: selectedCol } = selectedCell;
+        const {row: selectedRow, col: selectedCol} = selectedCell;
 
         // Same cell
         if (rowIndex === selectedRow && colIndex === selectedCol) return 'selected';
@@ -316,7 +325,8 @@ const Cell = memo(({
     return (
         <TouchableWithoutFeedback
             onPress={() => onCellPress(rowIndex, colIndex, isFixedValue)}>
-            <View className={`flex-1 items-center justify-center aspect-square m-0.5 rounded-xl ${getBackgroundStyleClasses()}`}>
+            <View
+                className={`flex-1 items-center justify-center aspect-square m-0.5 rounded-xl ${getBackgroundStyleClasses()}`}>
                 <Text
                     className={`font-mono text-xl font-bold tracking-wider sudoku-number ${getTextStyleClasses()}`}>{displayValue}</Text>
             </View>
