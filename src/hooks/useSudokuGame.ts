@@ -180,10 +180,13 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
         const updatedMoves = [...sudoku.moves];
         updatedMoves.pop();
 
+        // todo: do the array changes propagate rerenders?
         setSudoku({
             ...sudoku,
             moves: updatedMoves
         });
+        const previousCell = updatedMoves.at(-1)
+        setSelectedCell({row: previousCell.row, col: previousCell.col, isFixed: false})
         saveSudoku();
     }, [sudoku, saveSudoku]);
 
