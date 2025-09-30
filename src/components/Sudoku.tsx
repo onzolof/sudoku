@@ -1,4 +1,4 @@
-import React, {memo} from 'react';
+import React, {memo, useEffect} from 'react';
 import {
     View,
     Text,
@@ -52,6 +52,13 @@ function Sudoku({progressId}: SudokuProps) {
         undo();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
+
+    useEffect(() => {
+        // todo: this is just for debugging
+        if (sudoku?.moves){
+            console.log('last move: ', sudoku.moves)
+        }
+    }, [sudoku?.moves]);
 
     // Check if the selected cell has a value (either original or user input)
     const hasSelectedCellValue = () => {
@@ -237,7 +244,7 @@ const Cell = memo(({
 
     // Get the current value (original + moves)
     const moves = sudoku.moves || [];
-    const currentMove = moves.find(move => move.row === rowIndex && move.col === colIndex);
+    const currentMove = moves.findLast(move => move.row === rowIndex && move.col === colIndex);
     const currentValue = currentMove ? currentMove.value : (originalValue !== '0' ? parseInt(originalValue) : null);
     const displayValue = currentValue ? currentValue.toString() : '';
 

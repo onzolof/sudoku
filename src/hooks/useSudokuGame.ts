@@ -156,20 +156,21 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
         if (!selectedCell || selectedCell.isFixed || !sudoku) return;
 
         const {row, col} = selectedCell;
+        const currentMoves = Array.isArray(sudoku.moves) ? [...sudoku.moves] : [];
+        const newMove = {row, col, value: optionalNumber};
 
-        if (!Array.isArray(sudoku.moves)) {
-            sudoku.moves = [];
-        }
-
-        const previousMove = sudoku.moves.at(-1)
-        const newMove = {row, col, value: optionalNumber}
+        const previousMove = currentMoves.at(-1);
         const isSameMove = previousMove &&
             previousMove.row === newMove.row &&
             previousMove.col === newMove.col &&
             previousMove.value === newMove.value;
+
         if (!isSameMove) {
-            sudoku.moves.push(newMove);
-            setSudoku({...sudoku});
+            const updatedMoves = [...currentMoves, newMove]; // Create new array
+            setSudoku({
+                ...sudoku,
+                moves: updatedMoves
+            });
             saveSudoku();
         }
     }, [selectedCell, sudoku, saveSudoku]);
@@ -180,13 +181,17 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
         const updatedMoves = [...sudoku.moves];
         updatedMoves.pop();
 
-        // todo: do the array changes propagate rerenders?
         setSudoku({
             ...sudoku,
             moves: updatedMoves
         });
-        const previousCell = updatedMoves.at(-1)
-        setSelectedCell({row: previousCell.row, col: previousCell.col, isFixed: false})
+
+        // Only update selected cell if there are moves left
+        if (updatedMoves.length > 0) {
+            const previousCell = updatedMoves.at(-1);
+            setSelectedCell({row: previousCell.row, col: previousCell.col, isFixed: false});
+        }
+
         saveSudoku();
     }, [sudoku, saveSudoku]);
 
