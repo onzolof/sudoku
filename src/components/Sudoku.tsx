@@ -1,4 +1,4 @@
-import React, {memo, useEffect} from 'react';
+import React, {memo, useEffect, useMemo} from 'react';
 import {
     View,
     Text,
@@ -55,7 +55,7 @@ function Sudoku({progressId}: SudokuProps) {
 
     useEffect(() => {
         // todo: this is just for debugging
-        if (sudoku?.moves){
+        if (sudoku?.moves) {
             console.log('last move: ', sudoku.moves)
         }
     }, [sudoku?.moves]);
@@ -82,6 +82,14 @@ function Sudoku({progressId}: SudokuProps) {
 
         return originalValue !== '0';
     };
+
+    const isClearDisabled = useMemo(() => {
+        return !selectedCell || selectedCell.isFixed || !hasSelectedCellValue();
+    }, [selectedCell, sudoku?.moves]);
+
+    const isUndoDisabled = useMemo(() => {
+        return !sudoku?.moves || sudoku.moves.length === 0;
+    }, [sudoku?.moves]);
 
     // todo: maybe get rid of this progress
     if (loading) {
@@ -131,7 +139,7 @@ function Sudoku({progressId}: SudokuProps) {
                 <TouchableOpacity
                     onPress={handleUndo}
                     className="w-16 h-16 items-center rounded justify-center"
-                    disabled={!sudoku.moves || sudoku.moves.length === 0}
+                    disabled={isUndoDisabled}
                 >
                     <Text className="text-lg font-bold text-muted-foreground">
                         <Ionicons name="arrow-undo-outline" size={32}/>
@@ -142,7 +150,7 @@ function Sudoku({progressId}: SudokuProps) {
                 <TouchableOpacity
                     onPress={handleClearCell}
                     className="w-16 h-16 items-center rounded justify-center"
-                    disabled={!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()}
+                    disabled={isClearDisabled}
                 >
                     <Text className="text-lg font-bold text-muted-foreground">
                         <Ionicons
