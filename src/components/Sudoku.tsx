@@ -2,8 +2,7 @@ import React, {memo, useEffect, useMemo} from 'react';
 import {
     View,
     Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
+    TouchableWithoutFeedback, TouchableHighlight,
 } from 'react-native';
 import {ProgressSchema} from "../types";
 import {useSudokuGame} from "../hooks";
@@ -68,7 +67,8 @@ function Sudoku({progressId}: SudokuProps) {
 
         // Check if there's a user move for this cell
         const moves = Array.isArray(sudoku.moves) ? sudoku.moves : [];
-        const userMove = moves.find(move => move.row === row && move.col === col);
+        // todo: avoid duplicating this logic in cell again
+        const userMove = moves.findLast(move => move.row === row && move.col === col);
 
         if (userMove) {
             // If there's a user move, check if it has a value (not cleared)
@@ -136,50 +136,53 @@ function Sudoku({progressId}: SudokuProps) {
 
             <View className="flex-row justify-center items-center mt-6 gap-4">
                 {/*todo: restyle these buttons*/}
-                <TouchableOpacity
+                <TouchableHighlight
                     onPress={handleUndo}
                     className="w-16 h-16 items-center rounded justify-center"
                     disabled={isUndoDisabled}
+                    underlayColor={'white'}
+                    activeOpacity={0.5}
+                    style={{opacity: isUndoDisabled ? 0.5 : 1}}
                 >
                     <Text className="text-lg font-bold text-muted-foreground">
                         <Ionicons name="arrow-undo-outline" size={32}/>
                         <Text className="text-muted-foreground">Undo</Text>
                     </Text>
-                </TouchableOpacity>
+                </TouchableHighlight>
 
-                <TouchableOpacity
+                <TouchableHighlight
                     onPress={handleClearCell}
                     className="w-16 h-16 items-center rounded justify-center"
                     disabled={isClearDisabled}
+                    underlayColor={'white'}
+                    activeOpacity={0.5}
+                    style={{opacity: isClearDisabled ? 0.5 : 1}}
                 >
                     <Text className="text-lg font-bold text-muted-foreground">
-                        <Ionicons
-                            name="trash-outline"
-                            size={32}
-                            color={(!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()) ? '#9CA3AF' : undefined}
-                        />
-                        <Text
-                            className={`${(!selectedCell || selectedCell.isFixed || !hasSelectedCellValue()) ? 'text-gray-400' : 'text-muted-foreground'}`}>
-                            Clear
+                        <Ionicons name="trash-outline" size={32}/>
+                        <Text className="text-lg font-bold text-muted-foreground"> Clear
                         </Text>
                     </Text>
-                </TouchableOpacity>
+                </TouchableHighlight>
             </View>
             <View className="mt-12">
                 <View className="w-full flex-row justify-center gap-1.5">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
-                        <TouchableOpacity
+                        <TouchableHighlight
                             key={number}
                             onPress={() => handleNumberPress(number)}
                             disabled={!selectedCell || selectedCell.isFixed}
                             className="flex-1 rounded-lg"
+                            underlayColor={'white'}
+                            activeOpacity={0.5}
+                            style={{opacity: (!selectedCell || selectedCell.isFixed) ? 0.5 : 1}}
                         >
                             <Text
                                 key={`${number}`}
-                                className={`font-mono text-5xl font-bold ${selectedCell && !selectedCell.isFixed ? 'text-primary' : 'text-primary/50'}`}>
+                                className="font-mono text-5xl font-bold text-primary">
                                 {number}
                             </Text>
-                        </TouchableOpacity>
+                        </TouchableHighlight>
                     ))}
                 </View>
             </View>

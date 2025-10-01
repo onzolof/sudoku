@@ -107,20 +107,11 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
         return true;
     }, [currentGrid, isValidMove]);
 
-    // Save the current state to the database
-    const saveSudoku = useCallback(async () => {
-        if (!sudoku) return;
+    const saveSudoku = useCallback(async (newSudokuState: ProgressSchema | null) => {
+        if (!newSudokuState) return;
 
         try {
-            // Update the moves in the sudoku object
-            const updatedSudoku = {
-                ...sudoku,
-                moves: sudoku.moves || [],
-                solved: isSolved ? 1 : 0
-            };
-
-            // Save to database
-            await progressService.updateProgress(updatedSudoku);
+            await progressService.updateProgress(newSudokuState);
         } catch (error) {
             console.error('Failed to save Sudoku progress:', error);
         }
@@ -167,11 +158,12 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
 
         if (!isSameMove) {
             const updatedMoves = [...currentMoves, newMove]; // Create new array
-            setSudoku({
+            const newSudokuState = {
                 ...sudoku,
                 moves: updatedMoves
-            });
-            saveSudoku();
+            };
+            setSudoku(newSudokuState);
+            saveSudoku(newSudokuState);
         }
     }, [selectedCell, sudoku, saveSudoku]);
 
@@ -181,10 +173,11 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
         const updatedMoves = [...sudoku.moves];
         updatedMoves.pop();
 
-        setSudoku({
+        const newSudokuState = {
             ...sudoku,
             moves: updatedMoves
-        });
+        };
+        setSudoku(newSudokuState);
 
         // Only update selected cell if there are moves left
         if (updatedMoves.length > 0) {
@@ -192,7 +185,7 @@ export function useSudokuGame({progressId}: UseSudokuGameProps): UseSudokuGameRe
             setSelectedCell({row: previousCell.row, col: previousCell.col, isFixed: false});
         }
 
-        saveSudoku();
+        saveSudoku(newSudokuState);
     }, [sudoku, saveSudoku]);
 
     const clearSelectedCell = useCallback(() => {
