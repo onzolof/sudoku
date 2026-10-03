@@ -43,6 +43,6 @@ yarn-error.*
 *.db-shm
 *.db-wal
 
-# compiled code
-ios
-android
+# Native build output (expo prebuild / local builds — do not commit)
+/ios/
+/android/
