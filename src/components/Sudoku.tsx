@@ -135,35 +135,40 @@ function Sudoku({progressId}: SudokuProps) {
             </View>
 
             <View className="flex-row justify-center items-center mt-6 gap-4">
-                {/*todo: restyle these buttons*/}
-                <TouchableHighlight
+                {/*todo: Sudoku button pressing and disabling behavior testen*/}
+                <SudokuButton
                     onPress={handleUndo}
-                    className="w-16 h-16 items-center rounded justify-center"
                     disabled={isUndoDisabled}
-                    underlayColor={'white'}
-                    activeOpacity={0.5}
-                    style={{opacity: isUndoDisabled ? 0.5 : 1}}
-                >
-                    <Text className="text-lg font-bold text-muted-foreground">
-                        <Ionicons name="arrow-undo-outline" size={32}/>
-                        <Text className="text-muted-foreground">Undo</Text>
-                    </Text>
-                </TouchableHighlight>
-
-                <TouchableHighlight
-                    onPress={handleClearCell}
                     className="w-16 h-16 items-center rounded justify-center"
-                    disabled={isClearDisabled}
-                    underlayColor={'white'}
-                    activeOpacity={0.5}
-                    style={{opacity: isClearDisabled ? 0.5 : 1}}
                 >
                     <Text className="text-lg font-bold text-muted-foreground">
-                        <Ionicons name="trash-outline" size={32}/>
-                        <Text className="text-lg font-bold text-muted-foreground"> Clear
+                        <Ionicons 
+                            name="arrow-undo-outline" 
+                            size={32}
+                            color={isUndoDisabled ? '#9CA3AF' : undefined}
+                        />
+                        <Text className={isUndoDisabled ? 'text-gray-400' : 'text-muted-foreground'}>
+                            Undo
                         </Text>
                     </Text>
-                </TouchableHighlight>
+                </SudokuButton>
+
+                <SudokuButton
+                    onPress={handleClearCell}
+                    disabled={isClearDisabled}
+                    className="w-16 h-16 items-center rounded justify-center"
+                >
+                    <Text className="text-lg font-bold text-muted-foreground">
+                        <Ionicons 
+                            name="trash-outline" 
+                            size={32}
+                            color={isClearDisabled ? '#9CA3AF' : undefined}
+                        />
+                        <Text className={isClearDisabled ? 'text-gray-400' : 'text-muted-foreground'}>
+                            Clear
+                        </Text>
+                    </Text>
+                </SudokuButton>
             </View>
             <View className="mt-12">
                 <View className="w-full flex-row justify-center gap-1.5">
@@ -349,5 +354,32 @@ const Cell = memo(({
                     className={`font-mono text-xl font-bold tracking-wider sudoku-number ${getTextStyleClasses()}`}>{displayValue}</Text>
             </View>
         </TouchableWithoutFeedback>
+    );
+});
+
+type SudokuButtonProps = {
+    onPress: () => void;
+    disabled?: boolean;
+    children: React.ReactNode;
+    className?: string;
+};
+
+const SudokuButton = memo(({
+    onPress,
+    disabled = false,
+    children,
+    className = ""
+}: SudokuButtonProps) => {
+    return (
+        <TouchableHighlight
+            onPress={onPress}
+            disabled={disabled}
+            className={className}
+            underlayColor="rgba(0, 0, 0, 0.1)"
+            activeOpacity={0.7}
+            style={{ opacity: disabled ? 0.5 : 1 }}
+        >
+            {children}
+        </TouchableHighlight>
     );
 });
